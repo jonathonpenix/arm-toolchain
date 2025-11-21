@@ -211,6 +211,7 @@ set(LLVM_DISTRIBUTION_COMPONENTS
     dsymutil
     elf2bin
     lld
+    ld.eld
     llvm-ar
     llvm-config
     llvm-cov
@@ -247,6 +248,7 @@ set(LLVM_APPEND_VC_REV OFF CACHE BOOL "")
 set(LLVM_ENABLE_TERMINFO OFF CACHE BOOL "")
 set(LLVM_ENABLE_ZSTD OFF CACHE BOOL "")
 set(LLVM_ENABLE_LIBXML2 OFF CACHE BOOL "")
+set(LLVM_ENABLE_LIBCXX ON CACHE BOOL "")
 set(CLANG_DEFAULT_LINKER lld CACHE STRING "")
 
 # Default to a release build
@@ -282,6 +284,11 @@ set(CMAKE_INSTALL_MESSAGE NEVER CACHE STRING "")
 include(ExternalProject)
 include(FetchContent)
 include(ProcessorCount)
+
+# jpenix FIXME: need to figure out patching LLVM I guess
+
+# Check out and patch eld
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_eld.cmake)
 
 # Check out and patch picolibc or newlib if required.
 #
@@ -356,8 +363,9 @@ set(LLVM_TOOLCHAIN_PROJECT_CODE "E")
 set(LLVM_TOOLCHAIN_VERSION_SUFFIX "pre")
 include(${CMAKE_CURRENT_SOURCE_DIR}/../shared/cmake/generate_toolchain_id.cmake)
 
-# Include elf2bin
-set(LLVM_EXTERNAL_PROJECTS elf2bin)
+# Include elf2bin, eld
+set(LLVM_EXTERNAL_PROJECTS elf2bin eld)
+set(LLVM_EXTERNAL_ELD_SOURCE_DIR "${eld_SOURCE_DIR}")
 set(LLVM_EXTERNAL_ELF2BIN_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../shared/elf2bin)
 
 set(clang_lit_xfails_path "${CMAKE_CURRENT_BINARY_DIR}/clang_lit_xfails.txt")
@@ -368,7 +376,7 @@ add_subdirectory(
     ${llvmproject_src_dir}/llvm llvm
 )
 
-add_dependencies(check-all check-elf2bin)
+add_dependencies(check-all check-elf2bin check-eld)
 
 # Update the xfail/xfail-not list before running the tests.
 add_custom_target(
@@ -614,6 +622,7 @@ if(NOT PREBUILT_TARGET_LIBRARIES)
         set(lib_tool_dependencies
             clang
             lld
+            ld.eld
             llvm-ar
             llvm-config
             llvm-nm
