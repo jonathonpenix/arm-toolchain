@@ -5,6 +5,8 @@ c_ld = 'eld'
 cpp_ld = 'eld'
 ar = '@LLVM_BINARY_DIR@/bin/llvm-ar@CMAKE_EXECUTABLE_SUFFIX@'
 strip = '@LLVM_BINARY_DIR@/bin/llvm-strip@CMAKE_EXECUTABLE_SUFFIX@'
+# jpenix FIXME: for rv64, I have to specify medany in the configs. Why is that
+# not needed for us in SDLLVM? Seems like picolibc sets it, but isn't here.
 # only needed to run tests
 # setting stdin to /dev/null prevents qemu from fiddling with the echo bit of
 # the parent terminal
@@ -24,11 +26,7 @@ endian = 'little'
 [properties]
 skip_sanity_check = true
 libgcc ='-lclang_rt.builtins'
-separate_boot_flash = true
-default_boot_flash_addr = '@BOOT_FLASH_ADDRESS@'
-default_boot_flash_size = '@BOOT_FLASH_SIZE@'
 default_flash_addr = '@FLASH_ADDRESS@'
 default_flash_size = '@FLASH_SIZE@'
 default_ram_addr   = '@RAM_ADDRESS@'
 default_ram_size   = '@RAM_SIZE@'
-default_stack_size = '@STACK_SIZE@'

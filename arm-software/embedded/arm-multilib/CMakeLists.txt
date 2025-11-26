@@ -48,7 +48,10 @@ set(
     fvp/get_fvps.sh"
 )
 set(FVP_CONFIG_DIR "${TOOLCHAIN_SOURCE_DIR}/fvp/config" CACHE STRING "The directory in which the FVP models are installed.")
-option(ENABLE_MULTILIB_HEADER_OPTIMISATION "Enable multilib header optimisation phase" ON)
+# jpenix FIXME: this apparently needs work for this to do something reasonable
+# for RISC-V targets. With this enabled, we don't get an appropriate clang-runtimes
+# dir for them right now.
+option(ENABLE_MULTILIB_HEADER_OPTIMISATION "Enable multilib header optimisation phase" OFF)
 option(
     ENABLE_PARALLEL_LIB_CONFIG
     "Run the library variant configuration steps in parallel."
@@ -183,6 +186,10 @@ foreach(lib_idx RANGE ${lib_count_dec})
             # Sort by target triple
             if(variant MATCHES "^aarch64")
                 set(parent_dir_name aarch64-none-elf)
+            elseif(variant MATCHES "^riscv32")
+                set(parent_dir_name riscv32-unknown-elf)
+            elseif(variant MATCHES "^riscv64")
+                set(parent_dir_name riscv64-unknown-elf)
             else()
                 set(parent_dir_name arm-none-eabi)
             endif()

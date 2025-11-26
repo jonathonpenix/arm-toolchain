@@ -1,0 +1,24 @@
+{
+    "args": {
+        "common": {
+            "TARGET_ARCH": "riscv64",
+            "VARIANT": "riscv64imac_lp64d",
+            "COMPILE_FLAGS": "--target=riscv64-unknown-elf -march=rv64imafdc -mabi=lp64d -mcmodel=medany",
+            "ENABLE_EXCEPTIONS": "OFF",
+            "ENABLE_RTTI": "OFF",
+            "TEST_EXECUTOR": "qemu",
+            "QEMU_MACHINE": "virt",
+            "FLASH_ADDRESS": "0x80000000",
+            "FLASH_SIZE": "0x00400000",
+            "RAM_ADDRESS": "0x80400000",
+            "RAM_SIZE": "0x00200000",
+            "LIBRARY_BUILD_TYPE": "release"
+        },
+        "picolibc": {
+            "ENABLE_CXX_LIBS": "ON",
+            "ENABLE_LIBC_TESTS": "ON",
+            "ENABLE_COMPILER_RT_TESTS": "ON",
+            "ENABLE_LIBCXX_TESTS": "OFF"
+        }
+    }
+}

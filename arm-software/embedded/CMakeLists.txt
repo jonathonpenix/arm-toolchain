@@ -180,9 +180,12 @@ option(
     OFF
 )
 
+# jpenix FIXME: this apparently needs work for this to do something reasonable
+# for RISC-V targets. With this enabled, we don't get an appropriate clang-runtimes
+# dir for them right now.
 option(
     ENABLE_MULTILIB_HEADER_OPTIMISATION "Enable multilib header optimisation phase"
-    ON
+    OFF
 )
 
 # Previously, the LLVM_TOOLCHAIN_LIBRARY_OVERLAY_INSTALL option was
@@ -242,7 +245,7 @@ set(LLVM_TOOLCHAIN_DISTRIBUTION_COMPONENTS
 installed by the install-llvm-toolchain target"
 )
 set(LLVM_ENABLE_PROJECTS clang;lld CACHE STRING "")
-set(LLVM_TARGETS_TO_BUILD AArch64;ARM CACHE STRING "")
+set(LLVM_TARGETS_TO_BUILD AArch64;ARM;RISCV CACHE STRING "")
 set(LLVM_DEFAULT_TARGET_TRIPLE aarch64-unknown-linux-gnu CACHE STRING "")
 set(LLVM_APPEND_VC_REV OFF CACHE BOOL "")
 set(LLVM_ENABLE_TERMINFO OFF CACHE BOOL "")

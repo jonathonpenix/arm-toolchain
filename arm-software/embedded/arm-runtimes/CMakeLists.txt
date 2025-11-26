@@ -127,6 +127,14 @@ endif()
 if(TARGET_ARCH MATCHES "^aarch64")
     set(target_triple "aarch64-none-elf")
     set(cpu_family aarch64)
+elseif(TARGET_ARCH MATCHES "^riscv32")
+    set(target_triple "riscv32-unknown-elf")
+    # jpenix FIXME: I'm pretty sure this is newlib-specific, so this probably
+    # isn't important
+    set(cpu_family riscv32)
+elseif(TARGET_ARCH MATCHES "^riscv64")
+    set(target_triple "riscv64-unknown-elf")
+    set(cpu_family riscv64)
 else()
     # Choose the target triple so that compiler-rt will do the
     # right thing. We can't always put the exact target
@@ -180,6 +188,10 @@ if(ENABLE_LIBC_TESTS OR ENABLE_COMPILER_RT_TESTS OR ENABLE_LIBCXX_TESTS)
     if(TEST_EXECUTOR STREQUAL qemu)
         if(TARGET_ARCH MATCHES "^aarch64")
             find_program(QEMU_EXECUTABLE qemu-system-aarch64 REQUIRED)
+        elseif(TARGET_ARCH MATCHES "^riscv32")
+            find_program(QEMU_EXECUTABLE qemu-system-riscv32 REQUIRED)
+        elseif(TARGET_ARCH MATCHES "^riscv64")
+            find_program(QEMU_EXECUTABLE qemu-system-riscv64 REQUIRED)
         else()
             find_program(QEMU_EXECUTABLE qemu-system-arm REQUIRED)
         endif()
@@ -262,7 +274,7 @@ endif()
 # Exceptions are architectures pre-armv7, which compiler-rt expects to
 # see in the triple because that's where it looks to decide whether to
 # use specific assembly sources.
-if(NOT target_triple MATCHES "^(aarch64-none-elf|arm-none-eabi|armv[4-6])")
+if(NOT target_triple MATCHES "^(aarch64-none-elf|arm-none-eabi|armv[4-6]|riscv32-unknown-elf|riscv64-unknown-elf)")
     message(FATAL_ERROR "\
 Target triple name \"${target_triple}\" not compatible with compiler-rt.
 Use -march to specify the architecture.")
@@ -273,7 +285,12 @@ if(flags MATCHES "-mfloat-abi=hard" AND NOT target_triple MATCHES "-eabihf$")
     message(FATAL_ERROR "\
 Hard-float library with target triple \"${target_triple}\" must end \"-eabihf\"")
 endif()
-string(REPLACE "-none-" "-unknown-none-" normalized_target_triple ${target_triple})
+# jpenix FIXME: this is probably safe, but maybe this should be if'ed?
+if(target_triple MATCHES "^riscv")
+    string(REPLACE "-unknown-" "-unknown-unknown-" normalized_target_triple ${target_triple})
+else()
+    string(REPLACE "-none-" "-unknown-none-" normalized_target_triple ${target_triple})
+endif()
 
 # This prevents a test failure due to insufficient available registers.
 # TODO: Which test, can this be fixed upstream?
@@ -417,6 +434,7 @@ if(C_LIBRARY STREQUAL picolibc)
     endif()
 
     # TODO: xfail these tests instead of disabling.
+    # jpenix FIXME: not sure what the settings should be here for RISC-V
     if(target_triple MATCHES "^aarch64")
         set(enable_picolibc_long_double_test false)
     else()
@@ -441,7 +459,14 @@ if(C_LIBRARY STREQUAL picolibc)
         to_meson_list("${test_executor_params}" meson_test_executor_params)
     endif()
 
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/meson-cross-build.txt.in ${CMAKE_CURRENT_BINARY_DIR}/meson-cross-build.txt @ONLY)
+    # jpenix FIXME: might be able to explicitly disable this, but right now see failures
+    # if we don't split this. Should figure out why this doesn't fail for us downstream
+    # (why we don't have to set the stack size, boot flash stuff for arm/aarch64)
+    if(target_triple MATCHES "^riscv")
+        configure_file(${CMAKE_CURRENT_SOURCE_DIR}/meson-cross-build-riscv.txt.in ${CMAKE_CURRENT_BINARY_DIR}/meson-cross-build.txt @ONLY)
+    else()
+        configure_file(${CMAKE_CURRENT_SOURCE_DIR}/meson-cross-build.txt.in ${CMAKE_CURRENT_BINARY_DIR}/meson-cross-build.txt @ONLY)
+    endif()
 
     ExternalProject_Add(
         picolibc
