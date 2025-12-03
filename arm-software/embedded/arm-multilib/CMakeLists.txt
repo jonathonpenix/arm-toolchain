@@ -159,6 +159,8 @@ string(JSON multilib_defs GET ${multilib_json_str} "libs")
 string(JSON lib_count LENGTH ${multilib_defs})
 math(EXPR lib_count_dec "${lib_count} - 1")
 
+include(${TOOLCHAIN_SOURCE_DIR}/cmake/get_canonical_riscv_march.cmake)
+
 foreach(lib_idx RANGE ${lib_count_dec})
     string(JSON lib_def GET ${multilib_defs} ${lib_idx})
     string(JSON variant GET ${lib_def} "variant")
@@ -348,6 +350,29 @@ foreach(lib_idx RANGE ${lib_count_dec})
             string(APPEND multilib_yaml_content "  Flags:\n")
             string(REPLACE " " ";" multilib_flags_list ${variant_multilib_flags})
             foreach(flag ${multilib_flags_list})
+                if(variant MATCHES "^riscv")
+                    if(flag MATCHES "-march=")
+                        get_canonical_riscv_march(
+                            "${LLVM_BINARY_DIR}/bin/clang${CMAKE_EXECUTABLE_SUFFIX}"
+                            "${multilib_flags_list}"
+                            canonical_riscv_march
+                        )
+                        set(flag "-march=${canonical_riscv_march}")
+
+                        # Matching against `_` as the divider between extensions and adding a trailing
+                        # glob seems easier than matching the extension and version. I'm not 100% sure
+                        # what the guarantee around the normalized form is though, so maybe this doesn't
+                        # hold in the general case? This also forgoes any special handling of extension
+                        # versions, but that seems fine as I don't think we support multiple versions of
+                        # the same extensions, and we generally expect our compiler and libraries (and
+                        # multilib file) to be coupled.
+                        string(REPLACE "_" "_.*" expanded_riscv_march_match ${flag})
+                        string(APPEND riscv_march_mappings "- Match: ${expanded_riscv_march_match}.*\n")
+                        string(APPEND riscv_march_mappings "  Flags:\n")
+                        string(APPEND riscv_march_mappings "  - ${flag}\n")
+                    endif()
+                endif()
+
                 string(APPEND multilib_yaml_content "  - ${flag}\n")
             endforeach()
             if(ENABLE_MULTILIB_HEADER_OPTIMISATION)
