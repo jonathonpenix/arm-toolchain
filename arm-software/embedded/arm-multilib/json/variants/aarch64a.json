@@ -24,6 +24,13 @@
             "ENABLE_COMPILER_RT_TESTS": "ON",
             "ENABLE_LIBCXX_TESTS": "OFF"
         },
+        "musl-embedded": {
+            "BUILD_SCRIPT": "aarch64_baremetal.sh",
+            "ENABLE_CXX_LIBS": "OFF",
+            "ENABLE_LIBC_TESTS": "OFF",
+            "ENABLE_COMPILER_RT_TESTS": "ON",
+            "ENABLE_LIBCXX_TESTS": "OFF"
+        },
         "newlib": {
             "ENABLE_CXX_LIBS": "ON",
             "ENABLE_LIBC_TESTS": "OFF",

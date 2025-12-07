@@ -170,7 +170,7 @@ set(LLVM_TOOLCHAIN_C_LIBRARY
     "Which C library to use."
 )
 set_property(CACHE LLVM_TOOLCHAIN_C_LIBRARY
-    PROPERTY STRINGS picolibc newlib newlib-nano llvmlibc)
+    PROPERTY STRINGS picolibc newlib newlib-nano llvmlibc musl-embedded)
 
 option(
     SHORT_BUILD_PATHS
@@ -310,6 +310,9 @@ endif()
 if(LLVM_TOOLCHAIN_C_LIBRARY MATCHES "^newlib")
     include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_newlib.cmake)
 endif()
+if(LLVM_TOOLCHAIN_C_LIBRARY STREQUAL musl-embedded)
+    include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_musl-embedded.cmake)
+endif()
 
 ##################################################################################################
 # We set all project properties later, this call is just to enable the
@@ -347,6 +350,17 @@ if(LLVM_TOOLCHAIN_C_LIBRARY MATCHES "^newlib")
         DIRECTORY
         ${CMAKE_CURRENT_SOURCE_DIR}/newlib-samples/
         DESTINATION samples
+        COMPONENT llvm-toolchain-${LLVM_TOOLCHAIN_C_LIBRARY}-configs
+    )
+endif()
+
+# Not sure we need the SBOM and I'm not sure we want to deal with samples right now,
+# so we can probably merge all this later.
+if(LLVM_TOOLCHAIN_C_LIBRARY STREQUAL musl-embedded)
+    install(
+        FILES
+        ${CMAKE_CURRENT_SOURCE_DIR/${LLVM_TOOLCHAIN_C_LIBRARY}.cfg}
+        DESTINATION bin
         COMPONENT llvm-toolchain-${LLVM_TOOLCHAIN_C_LIBRARY}-configs
     )
 endif()
@@ -555,6 +569,7 @@ llvm_install_symlink(LLVM llvm-strip llvm-objcopy ALWAYS_GENERATE)
 # Use add_custom_target instead of add_custom_command so that the target
 # is always considered out-of-date, ensuring that VERSION.txt will be
 # updated when the git revision changes.
+message(WARNING "${musl_SOURCE_DIR}")
 add_custom_target(
     version_txt
     COMMAND
@@ -568,11 +583,14 @@ add_custom_target(
     -Dpicolibc_URL=${picolibc_URL}
     -Dnewlib_SOURCE_DIR=${newlib_SOURCE_DIR}
     -Dnewlib_URL=${newlib_URL}
+    -Dmusl_SOURCE_DIR=${musl_SOURCE_DIR}
+    -Dmusl_URL=${musl_URL}
     # but we do tell the script which library we're actually using
     -DLLVM_TOOLCHAIN_C_LIBRARY=${LLVM_TOOLCHAIN_C_LIBRARY}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/generate_version_txt.cmake
     BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/VERSION.txt
 )
+# jpenix FIXME: might need to mess with this
 if(NOT (LLVM_TOOLCHAIN_C_LIBRARY STREQUAL picolibc))
     install(
         FILES "${CMAKE_CURRENT_BINARY_DIR}/VERSION.txt"
@@ -698,6 +716,7 @@ if(NOT PREBUILT_TARGET_LIBRARIES)
         -DFVP_CONFIG_DIR=${CMAKE_CURRENT_SOURCE_DIR}/fvp/config
         -DFETCHCONTENT_SOURCE_DIR_PICOLIBC=${FETCHCONTENT_SOURCE_DIR_PICOLIBC}
         -DFETCHCONTENT_SOURCE_DIR_NEWLIB=${FETCHCONTENT_SOURCE_DIR_NEWLIB}
+        -DFETCHCONTENT_SOURCE_DIR_MUSL=${FETCHCONTENT_SOURCE_DIR_MUSL}
         -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
         -DPROJECT_PREFIX=${multilib_prefix}
         -DNUMERICAL_BUILD_NAMES=${SHORT_BUILD_PATHS}
@@ -828,12 +847,15 @@ install(
 set(third_party_license_files
     ${llvmproject_src_dir}/llvm/LICENSE.TXT          LLVM-LICENSE.txt
     ${llvmproject_src_dir}/clang/LICENSE.TXT         CLANG-LICENSE.txt
+    # jpenix FIXME: add eld license in here too
     ${llvmproject_src_dir}/lld/LICENSE.TXT           LLD-LICENSE.txt
     ${llvmproject_src_dir}/compiler-rt/LICENSE.TXT   COMPILER-RT-LICENSE.txt
     ${llvmproject_src_dir}/libcxx/LICENSE.TXT        LIBCXX-LICENSE.txt
     ${llvmproject_src_dir}/libcxxabi/LICENSE.TXT     LIBCXXABI-LICENSE.txt
     ${llvmproject_src_dir}/libunwind/LICENSE.TXT     LIBUNWIND-LICENSE.txt
 )
+# jpenix FIXME: add musl license too
+
 if(LLVM_TOOLCHAIN_C_LIBRARY STREQUAL picolibc)
     list(APPEND third_party_license_files
         ${picolibc_SOURCE_DIR}/COPYING.NEWLIB           COPYING.NEWLIB

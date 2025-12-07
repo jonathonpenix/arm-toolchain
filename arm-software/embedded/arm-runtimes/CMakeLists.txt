@@ -21,7 +21,7 @@ set(llvmproject_src_dir ${TOOLCHAIN_SOURCE_DIR}/../..)
 # CMake arguments are loaded from the JSON file depending on which C
 # library is used, so this must be set before the JSON is processed.
 set(C_LIBRARY "picolibc" CACHE STRING "Which C library to use.")
-set_property(CACHE C_LIBRARY PROPERTY STRINGS picolibc newlib newlib-nano llvmlibc)
+set_property(CACHE C_LIBRARY PROPERTY STRINGS picolibc newlib newlib-nano llvmlibc musl-embedded)
 
 set(VARIANT_JSON "" CACHE STRING "JSON file to load args from.")
 if(VARIANT_JSON)
@@ -94,6 +94,7 @@ endif()
 set(LIBRARY_BUILD_TYPE ${LIBRARY_BUILD_TYPE_def} CACHE STRING "Build type to use in library builds.")
 set_property(CACHE LIBRARY_BUILD_TYPE PROPERTY STRINGS ${SUPPORTED_LIBRARY_BUILD_TYPES})
 
+set(BUILD_SCRIPT ${BUILD_SCRIPT_def} CACHE STRING "Build script to invoke, intended for use with musl-embedded only")
 set(ENABLE_CXX_LIBS ${ENABLE_CXX_LIBS_def} CACHE BOOL "Build CXX libs")
 set(ENABLE_LIBC_TESTS ${ENABLE_LIBC_TESTS_def} CACHE BOOL "Enable libc tests (picolibc, newlib, newlib-nano or llvm-libc).")
 set(ENABLE_COMPILER_RT_TESTS ${ENABLE_COMPILER_RT_TESTS_def} CACHE BOOL "Enable compiler-rt tests.")
@@ -325,6 +326,8 @@ if(ENABLE_COMPILER_RT_TESTS)
     )
 endif()
 
+# jpenix FIXME: should check what this is, also probably should be checking
+# the target here I guess as it shouldn't matter for RISC-V
 if(NOT C_LIBRARY STREQUAL "llvmlibc")
     set(compiler_rt_cmake_args
     -DCOMPILER_RT_EXCLUDE_LIBC_PROVIDED_ARM_AEABI_BUILTINS=ON
@@ -606,6 +609,76 @@ if(C_LIBRARY STREQUAL picolibc)
     endif()
 
 endif()
+
+###############################################################################
+# musl-embedded
+###############################################################################
+if(C_LIBRARY STREQUAL musl-embedded)
+    if(ENABLE_LIBC_TESTS)
+        message(FATAL_ERROR "Tests cannot be enabled using musl-embedded.")
+    endif()
+
+    if(WIN32)
+        message(FATAL_ERROR "Building MUSL is only supported on Linux hosts")
+    endif()
+
+    # jpenix FIXME: need to discuss with Ana what we want to do here. Our old
+    # RISC-V musl uses an entirely separate MUSL/MUSL version...
+    if(TARGET_ARCH MATCHES "^riscv")
+        message(FATAL_ERROR "Only Arm and AArch64 targets are supported for musl-embedded")
+    endif()
+
+    include(${TOOLCHAIN_SOURCE_DIR}/cmake/fetch_musl-embedded.cmake)
+
+    include(ProcessorCount)
+    set(make_flags)
+    ProcessorCount(nproc)
+    if(NOT nproc EQUAL 0)
+        set(make_flags -j${nproc})
+    endif()
+
+    # jpenix FIXME: need to fix the compiler being used?
+
+    # There's no technical reason why we couldn't follow what was done for
+    # newlib and have CONFIGURE_COMMAND invoke `configure`, BUILD `make`, etc.
+    # Doing that is probably more in the spirit of the library scheme, but
+    # a few of the configs define multiple, differently named libcs--recreating
+    # that seems like more work that it is worth as I don't think we have any
+    # intention of adding more MUSL configs or supporting it long-term. So,
+    # invoke our MUSL build scripts directly instead.
+    message(WARNING "in runtimes: ${musl_SOURCE_DIR}")
+    ExternalProject_Add(
+        ${C_LIBRARY}
+        STAMP_DIR ${PROJECT_PREFIX}/${C_LIBRARY}/${VARIANT_BUILD_ID}/stamp
+        BINARY_DIR ${PROJECT_PREFIX}/${C_LIBRARY}/${VARIANT_BUILD_ID}/build
+        DOWNLOAD_DIR ${PROJECT_PREFIX}/${C_LIBRARY}/${VARIANT_BUILD_ID}/dl
+        TMP_DIR ${PROJECT_PREFIX}/${C_LIBRARY}/${VARIANT_BUILD_ID}/tmp
+        SOURCE_DIR ${musl_SOURCE_DIR}
+        INSTALL_DIR ${TEMP_LIB_DIR}
+        CONFIGURE_COMMAND ""
+        BUILD_COMMAND
+            cd ${musl_SOURCE_DIR}
+            &&
+            make distclean
+            &&
+            bash -x qualcomm-software/config/linux/arm/${BUILD_SCRIPT} --prefix=${TEMP_LIB_DIR}
+            &&
+            make ${make_flags}
+        INSTALL_COMMAND
+            cd ${musl_SOURCE_DIR}
+            &&
+            make install
+        USES_TERMINAL_CONFIGURE TRUE
+        USES_TERMINAL_BUILD TRUE
+        USES_TERMINAL_INSTALL TRUE
+        # Always run the build command so that incremental builds are correct.
+        CONFIGURE_HANDLED_BY_BUILD TRUE
+        TEST_EXCLUDE_FROM_MAIN TRUE
+        STEP_TARGETS configure build install
+    )
+endif()
+
+# jpenix FIXME: I'll also need to go do some plumbing in libc++ built against musl
 
 ###############################################################################
 # newlib

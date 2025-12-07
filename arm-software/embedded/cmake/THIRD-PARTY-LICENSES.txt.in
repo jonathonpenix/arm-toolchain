@@ -8,5 +8,6 @@ additional or alternate licenses:
  - libc++abi: third-party-licenses/LIBCXXABI-LICENSE.txt
  - libunwind: third-party-licenses/LIBUNWIND-LICENSE.txt
  - Picolibc: third-party-licenses/COPYING.NEWLIB, third-party-licenses/COPYING.picolibc${mingw_runtime_dlls}
+ - jpenix FIXME: eld, musl-embedded
 
 Picolibc licenses refer to its source files. Sources are identified in VERSION.txt.

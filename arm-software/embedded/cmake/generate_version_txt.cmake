@@ -20,6 +20,8 @@ endif()
 if(NOT (LLVM_TOOLCHAIN_C_LIBRARY STREQUAL llvmlibc)) # libc in a separate repo?
     if(LLVM_TOOLCHAIN_C_LIBRARY MATCHES "^newlib")
         set(base_library newlib)
+    elseif(LLVM_TOOLCHAIN_C_LIBRARY STREQUAL musl-embedded)
+        set(base_library musl)
     else()
         set(base_library ${LLVM_TOOLCHAIN_C_LIBRARY})
     endif()

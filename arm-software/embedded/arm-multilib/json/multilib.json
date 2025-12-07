@@ -3,7 +3,8 @@
         {
             "variant": "aarch64a_unaligned",
             "json": "aarch64a_unaligned.json",
-            "flags": "--target=aarch64-unknown-none-elf -fno-exceptions -fno-rtti -munaligned-access"
+            "flags": "--target=aarch64-unknown-none-elf -fno-exceptions -fno-rtti -munaligned-access",
+            "libraries_supported": "picolibc"
         },
         {
             "variant": "aarch64a",
@@ -13,27 +14,32 @@
         {
             "variant": "armv7a_soft_nofp",
             "json": "armv7a_soft_nofp.json",
-            "flags": "--target=armv7-unknown-none-eabi -mfpu=none -fno-exceptions -fno-rtti -mno-unaligned-access"
+            "flags": "--target=armv7-unknown-none-eabi -mfpu=none -fno-exceptions -fno-rtti -mno-unaligned-access",
+            "libraries_supported": "picolibc"
         },
         {
             "variant": "riscv32imac_ilp32",
             "json": "riscv32imac_ilp32.json",
-            "flags": "--target=riscv32-unknown-unknown-elf -march=rv32imac -mabi=ilp32"
+            "flags": "--target=riscv32-unknown-unknown-elf -march=rv32imac -mabi=ilp32",
+            "libraries_supported": "picolibc"
         },
         {
             "variant": "riscv32imafc_ilp32f",
             "json": "riscv32imafc_ilp32f.json",
-            "flags": "--target=riscv32-unknown-unknown-elf -march=rv32imafc -mabi=ilp32f"
+            "flags": "--target=riscv32-unknown-unknown-elf -march=rv32imafc -mabi=ilp32f",
+            "libraries_supported": "picolibc"
         },
         {
             "variant": "riscv64imac_lp64",
             "json": "riscv64imac_lp64.json",
-            "flags": "--target=riscv64-unknown-unknown-elf -march=rv64imac -mabi=lp64"
+            "flags": "--target=riscv64-unknown-unknown-elf -march=rv64imac -mabi=lp64",
+            "libraries_supported": "picolibc"
         },
         {
             "variant": "riscv64imafdc_lp64d",
             "json": "riscv64imafdc_lp64d.json",
-            "flags": "--target=riscv64-unknown-unknown-elf -march=rv64imafdc -mabi=lp64d"
+            "flags": "--target=riscv64-unknown-unknown-elf -march=rv64imafdc -mabi=lp64d",
+            "libraries_supported": "picolibc"
         }
     ]
 }
