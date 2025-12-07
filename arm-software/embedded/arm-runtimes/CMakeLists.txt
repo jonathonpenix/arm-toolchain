@@ -94,7 +94,6 @@ endif()
 set(LIBRARY_BUILD_TYPE ${LIBRARY_BUILD_TYPE_def} CACHE STRING "Build type to use in library builds.")
 set_property(CACHE LIBRARY_BUILD_TYPE PROPERTY STRINGS ${SUPPORTED_LIBRARY_BUILD_TYPES})
 
-set(BUILD_SCRIPT ${BUILD_SCRIPT_def} CACHE STRING "Build script to invoke, intended for use with musl-embedded only")
 set(ENABLE_CXX_LIBS ${ENABLE_CXX_LIBS_def} CACHE BOOL "Build CXX libs")
 set(ENABLE_LIBC_TESTS ${ENABLE_LIBC_TESTS_def} CACHE BOOL "Enable libc tests (picolibc, newlib, newlib-nano or llvm-libc).")
 set(ENABLE_COMPILER_RT_TESTS ${ENABLE_COMPILER_RT_TESTS_def} CACHE BOOL "Enable compiler-rt tests.")
@@ -243,7 +242,9 @@ endif()
 set(compile_arch_flags "--target=${target_triple} ${COMPILE_FLAGS} --sysroot ${TEMP_LIB_DIR}")
 # Compiling the libraries benefits from some extra optimization
 # flags, and requires a sysroot.
-set(lib_compile_flags "${compile_arch_flags} -ffunction-sections -fdata-sections -fno-ident")
+# jpenix FIXME: maybe add the fno-ident back, just want to see the comment for musl
+# right now.
+set(lib_compile_flags "${compile_arch_flags} -ffunction-sections -fdata-sections")
 
 # Generic target names for the C library.
 # Declare these now, since compiler-rt requires the 'install' dependency.
@@ -619,7 +620,7 @@ if(C_LIBRARY STREQUAL musl-embedded)
     endif()
 
     if(WIN32)
-        message(FATAL_ERROR "Building MUSL is only supported on Linux hosts")
+        message(FATAL_ERROR "Building MUSL is not supported on Windows hosts")
     endif()
 
     # jpenix FIXME: need to discuss with Ana what we want to do here. Our old
@@ -637,16 +638,18 @@ if(C_LIBRARY STREQUAL musl-embedded)
         set(make_flags -j${nproc})
     endif()
 
-    # jpenix FIXME: need to fix the compiler being used?
+    # jpenix FIXME: if we need the extra `uselocks`/`standalone` variants, we
+    # can add a passthrough here and make them separate variants.
+    set(musl_embedded_flags
+        --disable-wrapper
+        --quic-arm-baremetal
+        --disable-visibility
+        "CROSS_COMPILE=${LLVM_BINARY_DIR}/bin/llvm-"
+        "CC=${LLVM_BINARY_DIR}/bin/clang --target=${target_triple} -fuse-ld=eld"
+        # jpenix FIXME: maybe mess with the -Os to respect the lib build mode?
+        "CFLAGS=-Os ${lib_compile_flags} -fPIC -fvisibility=hidden -DVISIBILITY_HIDDEN -fno-rounding-math"
+        "LIBCC=${TEMP_LIB_DIR}/libclang_rt.builtins.a")
 
-    # There's no technical reason why we couldn't follow what was done for
-    # newlib and have CONFIGURE_COMMAND invoke `configure`, BUILD `make`, etc.
-    # Doing that is probably more in the spirit of the library scheme, but
-    # a few of the configs define multiple, differently named libcs--recreating
-    # that seems like more work that it is worth as I don't think we have any
-    # intention of adding more MUSL configs or supporting it long-term. So,
-    # invoke our MUSL build scripts directly instead.
-    message(WARNING "in runtimes: ${musl_SOURCE_DIR}")
     ExternalProject_Add(
         ${C_LIBRARY}
         STAMP_DIR ${PROJECT_PREFIX}/${C_LIBRARY}/${VARIANT_BUILD_ID}/stamp
@@ -655,13 +658,17 @@ if(C_LIBRARY STREQUAL musl-embedded)
         TMP_DIR ${PROJECT_PREFIX}/${C_LIBRARY}/${VARIANT_BUILD_ID}/tmp
         SOURCE_DIR ${musl_SOURCE_DIR}
         INSTALL_DIR ${TEMP_LIB_DIR}
-        CONFIGURE_COMMAND ""
-        BUILD_COMMAND
+        DEPENDS compiler_rt-install
+        CONFIGURE_COMMAND
             cd ${musl_SOURCE_DIR}
             &&
             make distclean
             &&
-            bash -x qualcomm-software/config/linux/arm/${BUILD_SCRIPT} --prefix=${TEMP_LIB_DIR}
+            ./configure
+            --prefix=${TEMP_LIB_DIR}
+            ${musl_embedded_flags}
+        BUILD_COMMAND
+            cd ${musl_SOURCE_DIR}
             &&
             make ${make_flags}
         INSTALL_COMMAND

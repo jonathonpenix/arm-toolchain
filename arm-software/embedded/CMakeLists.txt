@@ -569,7 +569,6 @@ llvm_install_symlink(LLVM llvm-strip llvm-objcopy ALWAYS_GENERATE)
 # Use add_custom_target instead of add_custom_command so that the target
 # is always considered out-of-date, ensuring that VERSION.txt will be
 # updated when the git revision changes.
-message(WARNING "${musl_SOURCE_DIR}")
 add_custom_target(
     version_txt
     COMMAND
