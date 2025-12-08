@@ -53,42 +53,6 @@
 # In addition there are targets to build picolibc & runtimes variants.
 #
 #
-# Cross-building from Linux to Windows MinGW is supported.
-# Note that a build created this way includes GCC & MinGW DLLs which
-# come under a different license. See building-from-source.md for
-# details.
-#
-# To enable cross-building run:
-#   cmake . -DLLVM_TOOLCHAIN_CROSS_BUILD_MINGW=ON -DCMAKE_INSTALL_PREFIX=$(pwd)/install-mingw
-#
-# If cross-building, there will be two toolchains built:
-# 1. The "build" toolchain. This is used to build the libraries.
-# 2. The "host" toolchain. This is the toolchain that will be packaged
-#    up into "Arm Toolchain for Embedded".
-# For "native" builds the "build" toolchain is also used as the "host"
-# toolchain.
-#
-# The terminology can be pretty confusing when you've got
-# toolchains building toolchains. There's a good explanation at
-# https://docs.conan.io/en/latest/systems_cross_building/cross_building.html
-#
-# To build the "build" toolchain we add the llvm source as a
-# subdirectory. This means you can build all its targets such
-# as check-llvm directly.
-# If cross-building, a "host" toolchain is built. It is built as a
-# separate project.
-#
-# When libraries are built, they are always copied into the "build"
-# toolchain. The primary reason for this is to minimise the number of
-# if/else statements in the CMake code, but it has the nice side-effect
-# that a cross-build is almost a superset of a native build.
-# It is only at install time that one of either the "build" or "host"
-# toolchain is copied to the install location.
-# This makes it easy to switch back and forth between native and cross
-# builds with:
-#   cmake . -DLLVM_TOOLCHAIN_CROSS_BUILD_MINGW=<ON or OFF> --install-prefix=...
-#
-#
 # When building the toolchain repeatedly, the most time-consuming part
 # can be building the libraries since each one is configured separately.
 # To work around this, the variants that get built can be limited using
@@ -100,10 +64,6 @@
 # greatly speeds up incremental builds.
 cmake_minimum_required(VERSION 3.20)
 
-option(
-    LLVM_TOOLCHAIN_CROSS_BUILD_MINGW
-    "Cross-build for Windows. Using this option implies that you accept the GCC & MinGW licenses."
-)
 option(
     PREBUILT_TARGET_LIBRARIES
     "Target libraries are prebuilt so no need to build them"
@@ -483,8 +443,6 @@ if(LLVM_TOOLCHAIN_LIBRARY_OVERLAY_INSTALL)
         llvm-toolchain-libs
         llvm-toolchain-${LLVM_TOOLCHAIN_C_LIBRARY}-configs
         llvm-toolchain-third-party-licenses)
-elseif(LLVM_TOOLCHAIN_CROSS_BUILD_MINGW)
-    set(CPACK_COMPONENTS_ALL ${LLVM_TOOLCHAIN_DISTRIBUTION_COMPONENTS} llvm-toolchain-mingw)
 else()
     set(CPACK_COMPONENTS_ALL ${LLVM_TOOLCHAIN_DISTRIBUTION_COMPONENTS} ${LLVM_DISTRIBUTION_COMPONENTS})
 endif()
@@ -531,15 +489,11 @@ else()
     endif()
 endif()
 
-if(LLVM_TOOLCHAIN_CROSS_BUILD_MINGW)
-    set(CPACK_SYSTEM_NAME "Windows-${processor_name}")
+# If a specific system name is supplied, use that instead.
+if (PACKAGE_SYSTEM_NAME)
+    set(CPACK_SYSTEM_NAME "${PACKAGE_SYSTEM_NAME}-${processor_name}")
 else()
-    # If a specific system name is supplied, use that instead.
-    if (PACKAGE_SYSTEM_NAME)
-        set(CPACK_SYSTEM_NAME "${PACKAGE_SYSTEM_NAME}-${processor_name}")
-    else()
-        set(CPACK_SYSTEM_NAME "${CMAKE_SYSTEM_NAME}-${processor_name}")
-    endif()
+    set(CPACK_SYSTEM_NAME "${CMAKE_SYSTEM_NAME}-${processor_name}")
 endif()
 
 set(CPACK_PACKAGE_VERSION ${PACKAGE_VERSION})
@@ -612,12 +566,10 @@ add_custom_target(llvm-toolchain ALL)
 # Groups all the runtime targets
 add_custom_target(llvm-toolchain-runtimes)
 
-if(NOT LLVM_TOOLCHAIN_CROSS_BUILD_MINGW)
-    add_dependencies(
-        llvm-toolchain
-        ${LLVM_DISTRIBUTION_COMPONENTS}
-    )
-endif()
+add_dependencies(
+    llvm-toolchain
+    ${LLVM_DISTRIBUTION_COMPONENTS}
+)
 
 add_dependencies(
     llvm-toolchain
@@ -816,11 +768,6 @@ install(
     COMPONENT llvm-toolchain-docs
 )
 
-if(LLVM_TOOLCHAIN_CROSS_BUILD_MINGW)
-    set(mingw_runtime_dlls
-        "\n - MinGW runtime DLLs: third-party-licenses/COPYING.MinGW-w64-runtime.txt, third-party-licenses/COPYING3.GCC, third-party-licenses/COPYING.RUNTIME"
-    )
-endif()
 configure_file(cmake/THIRD-PARTY-LICENSES.txt.in THIRD-PARTY-LICENSES.txt)
 
 if(NOT LLVM_TOOLCHAIN_LIBRARY_OVERLAY_INSTALL)
@@ -884,7 +831,7 @@ while(third_party_license_files)
 endwhile()
 
 # Install samples
-if(WIN32 OR LLVM_TOOLCHAIN_CROSS_BUILD_MINGW)
+if(WIN32)
     set(sample_files_regex "Makefile|.*\\.(c|conf|cpp|ld|md|bat)")
 else()
     set(sample_files_regex "Makefile|.*\\.(c|conf|cpp|ld|md)")
@@ -903,9 +850,6 @@ install(
 add_custom_target(
     install-llvm-toolchain
 )
-if(LLVM_TOOLCHAIN_CROSS_BUILD_MINGW)
-    list(APPEND LLVM_TOOLCHAIN_DISTRIBUTION_COMPONENTS llvm-toolchain-mingw)
-endif()
 foreach(component ${LLVM_TOOLCHAIN_DISTRIBUTION_COMPONENTS})
     add_custom_target(
         install-${component}
@@ -924,21 +868,15 @@ foreach(component ${LLVM_TOOLCHAIN_DISTRIBUTION_COMPONENTS})
         install-${component}
     )
 endforeach()
-if(LLVM_TOOLCHAIN_CROSS_BUILD_MINGW)
-    # No further action needed to install because the LLVM distributables
-    # are copied as part of the llvm-toolchain-mingw component.
-else()
-    # Also run install-distribution to install the LLVM
-    # binaries.
-    add_dependencies(
-        install-llvm-toolchain
-        install-distribution
-    )
-endif()
-
+# Also run install-distribution to install the LLVM
+# binaries.
+add_dependencies(
+    install-llvm-toolchain
+    install-distribution
+)
 
 # package-llvm-toolchain - target to create package
-if(LLVM_TOOLCHAIN_CROSS_BUILD_MINGW OR WIN32)
+if(WIN32)
     set(cpack_generator ZIP)
     set(package_filename_extension ".zip")
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin"
@@ -999,102 +937,6 @@ add_dependencies(check-llvm-toolchain check-compiler-rt)
 add_subdirectory(test)
 add_dependencies(check-llvm-toolchain check-llvm-toolchain-lit)
 add_subdirectory(packagetest)
-
-if(LLVM_TOOLCHAIN_CROSS_BUILD_MINGW)
-    find_program(MINGW_C_EXECUTABLE x86_64-w64-mingw32-gcc-posix REQUIRED)
-    find_program(MINGW_CXX_EXECUTABLE x86_64-w64-mingw32-g++-posix REQUIRED)
-    cmake_path(SET MINGW_SYSROOT NORMALIZE "${MINGW_C_EXECUTABLE}/../../x86_64-w64-mingw32")
-
-    string(REPLACE ";" "," LLVM_ENABLE_PROJECTS_comma "${LLVM_ENABLE_PROJECTS}")
-    string(REPLACE ";" "," LLVM_DISTRIBUTION_COMPONENTS_comma "${LLVM_DISTRIBUTION_COMPONENTS}")
-    string(REPLACE ";" "," LLVM_TARGETS_TO_BUILD_comma "${LLVM_TARGETS_TO_BUILD}")
-    ExternalProject_Add(
-        mingw-llvm
-        SOURCE_DIR ${llvmproject_src_dir}/llvm
-        PREFIX mingw-llvm
-        INSTALL_DIR mingw-llvm/install
-        DEPENDS clang-tblgen llvm-config llvm-tblgen
-        CMAKE_ARGS
-        -DBUG_REPORT_URL=${BUG_REPORT_URL}
-        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-        -DCMAKE_CROSSCOMPILING=ON
-        -DCMAKE_C_COMPILER=${MINGW_C_EXECUTABLE}
-        -DCMAKE_CXX_COMPILER=${MINGW_CXX_EXECUTABLE}
-        -DCMAKE_FIND_ROOT_PATH=${MINGW_SYSROOT}
-        -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER
-        -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY
-        -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY
-        -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
-        -DCMAKE_SYSTEM_NAME=Windows
-        -DCLANG_TABLEGEN=${LLVM_BINARY_DIR}/bin/clang-tblgen${CMAKE_EXECUTABLE_SUFFIX}
-        -DLLVM_CMAKE_DIR=${LLVM_BINARY_DIR}/lib/cmake/llvm
-        -DLLVM_DISTRIBUTION_COMPONENTS=${LLVM_DISTRIBUTION_COMPONENTS_comma}
-        -DLLVM_ENABLE_PROJECTS=${LLVM_ENABLE_PROJECTS_comma}
-        -DLLVM_TABLEGEN=${LLVM_BINARY_DIR}/bin/llvm-tblgen${CMAKE_EXECUTABLE_SUFFIX}
-        -DLLVM_TARGETS_TO_BUILD=${LLVM_TARGETS_TO_BUILD_comma}
-        -DLLVM_DEFAULT_TARGET_TRIPLE=${LLVM_DEFAULT_TARGET_TRIPLE}
-        -DLLVM_EXTERNAL_PROJECTS=elf2bin
-        -DLLVM_EXTERNAL_ELF2BIN_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/../shared/elf2bin
-        BUILD_COMMAND "" # Let the install command build whatever it needs
-        INSTALL_COMMAND "${CMAKE_COMMAND}" --build <BINARY_DIR> --target install-distribution
-        USES_TERMINAL_CONFIGURE TRUE
-        USES_TERMINAL_BUILD TRUE
-        USES_TERMINAL_INSTALL TRUE
-        LIST_SEPARATOR ,
-        # Always run the build command so that incremental builds are correct.
-        BUILD_ALWAYS TRUE
-        CONFIGURE_HANDLED_BY_BUILD TRUE
-    )
-    ExternalProject_Get_Property(mingw-llvm INSTALL_DIR)
-    # Handle symlinks such as clang++.
-    # CPack supports putting symlinks in zip files but to Windows they
-    # just look like a file containing text like "clang".
-    # Convert the required symlinks to regular files and remove the
-    # remaining ones.
-    add_custom_command(
-        TARGET mingw-llvm
-        POST_BUILD
-        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/cmake/handle-windows-symlinks.sh
-        WORKING_DIRECTORY ${INSTALL_DIR}
-    )
-
-    install(
-        DIRECTORY ${INSTALL_DIR}/
-        DESTINATION .
-        COMPONENT llvm-toolchain-mingw
-    )
-
-    # Copy MinGW licenses
-    install(
-        DIRECTORY mingw-licenses/
-        DESTINATION third-party-licenses
-        COMPONENT llvm-toolchain-third-party-licenses
-    )
-
-    # Copy MinGW runtime DLLs
-    foreach(mingw_runtime_dll
-        libwinpthread-1.dll # POSIX thread API implementation
-        libgcc_s_seh-1.dll  # GCC runtime
-        libstdc++-6.dll     # C++ Standard Library
-    )
-        execute_process(
-            COMMAND ${MINGW_C_EXECUTABLE} -print-file-name=${mingw_runtime_dll}
-            OUTPUT_VARIABLE mingw_runtime_dll
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            COMMAND_ERROR_IS_FATAL ANY
-        )
-        install(
-            FILES ${mingw_runtime_dll}
-            TYPE BIN
-            COMPONENT llvm-toolchain-mingw
-        )
-    endforeach()
-
-    add_dependencies(
-        llvm-toolchain
-        mingw-llvm
-    )
-endif()
 
 add_custom_target(check-all-llvm-toolchain)
 

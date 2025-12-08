@@ -118,37 +118,6 @@ After building, create a zip or tar.xz file as appropriate for the platform:
 ninja package-llvm-toolchain
 ```
 
-### Cross-compiling the toolchain for Windows
-
-The Arm Toolchain for Embedded can be cross-compiled to run on Windows.
-The compilation itself still happens on Linux. In addition to the prerequisites
-mentioned in the [Installing prerequisites](#installing-prerequisites) section
-you will also need a Mingw-w64 toolchain based on GCC 13 or above installed.
-For example, to install it on Ubuntu Linux use the following command:
-```
-# apt-get install mingw-w64
-```
-
-The MinGW build includes GCC & MinGW libraries into the package.
-
-The following three libraries are used:
-
-Library             | Project   | Link
---------------------|-----------|---------------------
-libstdc++-6.dll     | GCC       | https://gcc.gnu.org
-libgcc_s_seh-1.dll  | GCC       | https://gcc.gnu.org
-libwinpthread-1.dll | Mingw-w64 | http://mingw-w64.org
-
-The libraries are distributed under their own licenses, this needs to
-be taken into consideration if you decide to redistribute the built toolchain.
-
-To enable the MinGW build, set the LLVM_TOOLCHAIN_CROSS_BUILD_MINGW option:
-```
-cmake . -DLLVM_TOOLCHAIN_CROSS_BUILD_MINGW=ON
-ninja package-llvm-toolchain
-```
-The same build directory can be used for both native and MinGW toolchains.
-
 ## Known limitations
 * Depending on the state of the sources, build errors may occur when
   the latest revisions of the llvm-project & picolibc repos are used.
