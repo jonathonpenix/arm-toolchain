@@ -279,12 +279,6 @@ install(
     COMPONENT llvm-toolchain-config-files
 )
 
-# Generate a toolchain ID.
-# Product code 'E' for Embedded.
-set(LLVM_TOOLCHAIN_PROJECT_CODE "E")
-set(LLVM_TOOLCHAIN_VERSION_SUFFIX "pre")
-include(${CMAKE_CURRENT_SOURCE_DIR}/../shared/cmake/generate_toolchain_id.cmake)
-
 # Include eld
 set(LLVM_EXTERNAL_PROJECTS eld)
 set(LLVM_EXTERNAL_ELD_SOURCE_DIR "${eld_SOURCE_DIR}")
@@ -341,9 +335,6 @@ else()
 endif()
 set(CPACK_PACKAGE_NAME ${PACKAGE_NAME})
 set(PACKAGE_VERSION "${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR}.${LLVM_VERSION_PATCH}")
-if(DEFINED LLVM_TOOLCHAIN_VERSION_SUFFIX)
-    set(PACKAGE_VERSION "${PACKAGE_VERSION}-${LLVM_TOOLCHAIN_VERSION_SUFFIX}")
-endif()
 
 # Restrict which LLVM components are installed.
 if(LLVM_TOOLCHAIN_LIBRARY_OVERLAY_INSTALL)
