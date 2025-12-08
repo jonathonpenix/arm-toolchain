@@ -372,29 +372,11 @@ set(CPACK_THREADS 0 CACHE STRING "")
 
 # set processor_name
 string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} processor_name)
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    # If we're compiling on OSX we need to understand what targets we're
-    #  building for.
-    string(FIND "${CMAKE_OSX_ARCHITECTURES}" "x86_64" x86_result)
-    string(FIND "${CMAKE_OSX_ARCHITECTURES}" "arm64" arm64_result)
-
-    if((NOT ${x86_result} EQUAL -1) AND (NOT ${arm64_result} EQUAL -1))
-        set(processor_name "universal")
-    elseif(NOT ${x86_result} EQUAL -1)
-        set(processor_name "x86_64")
-    elseif(NOT ${arm64_result} EQUAL -1)
-        set(processor_name "arm64")
-    # CMAKE_OSX_ARCHITECTURES wasn't set or malformed
-    # if it was malformed, we'll catch that later in the process
-    # otherwise processor_name is already the system processor name
-    endif()
+string(REGEX MATCH "amd64|x64|x86" x86_match ${processor_name})
+if(x86_match)
+    set(processor_name "x86_64")
 else()
-    string(REGEX MATCH "amd64|x64|x86" x86_match ${processor_name})
-    if(x86_match)
-        set(processor_name "x86_64")
-    else()
-        set(processor_name "AArch64")
-    endif()
+    set(processor_name "AArch64")
 endif()
 
 # If a specific system name is supplied, use that instead.
@@ -754,10 +736,6 @@ add_dependencies(
 if(WIN32)
     set(cpack_generator ZIP)
     set(package_filename_extension ".zip")
-elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin"
-        AND NOT LLVM_TOOLCHAIN_LIBRARY_OVERLAY_INSTALL)
-    set(cpack_generator DragNDrop)
-    set(package_filename_extension ".dmg")
 else()
     set(cpack_generator TXZ)
     set(package_filename_extension ".tar.xz")
@@ -781,25 +759,14 @@ add_custom_target(
     COMMAND "${CMAKE_COMMAND}" -E rm -rf unpack
     COMMAND "${CMAKE_COMMAND}" -E make_directory unpack
 )
-if(package_filename_extension STREQUAL ".dmg")
-    # Extract only the toolchain directory from the .dmg file in ${package_filepath},
-    # as the image also includes a symlink to the "Applications" directory.
-    add_custom_target(
-        unpack-llvm-toolchain
-        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/extract_dmg.sh ${package_filepath} ${PACKAGE_FILE_NAME}
-        DEPENDS ${package_filepath}
-        USES_TERMINAL
-        WORKING_DIRECTORY unpack
-    )
-else()
-    add_custom_target(
-        unpack-llvm-toolchain
-        COMMAND "${CMAKE_COMMAND}" -E tar x ${package_filepath}
-        DEPENDS ${package_filepath}
-        USES_TERMINAL
-        WORKING_DIRECTORY unpack
-    )
-endif()
+
+add_custom_target(
+    unpack-llvm-toolchain
+    COMMAND "${CMAKE_COMMAND}" -E tar x ${package_filepath}
+    DEPENDS ${package_filepath}
+    USES_TERMINAL
+    WORKING_DIRECTORY unpack
+)
 add_dependencies(
     unpack-llvm-toolchain
     clear-unpack-directory
