@@ -36,10 +36,6 @@ option(
     "Enable tests that use QEMU. This option is ON by default."
     ON
 )
-# jpenix FIXME: this apparently needs work for this to do something reasonable
-# for RISC-V targets. With this enabled, we don't get an appropriate clang-runtimes
-# dir for them right now.
-option(ENABLE_MULTILIB_HEADER_OPTIMISATION "Enable multilib header optimisation phase" OFF)
 option(
     ENABLE_PARALLEL_LIB_CONFIG
     "Run the library variant configuration steps in parallel."
@@ -183,12 +179,10 @@ foreach(lib_idx RANGE ${lib_count_dec})
                 set(parent_dir_name arm-none-eabi)
             endif()
             set(destination_directory "${CMAKE_CURRENT_BINARY_DIR}/multilib/${parent_dir_name}/${variant}")
-            if(NOT ENABLE_MULTILIB_HEADER_OPTIMISATION)
-                install(
-                    DIRECTORY ${destination_directory}
-                    DESTINATION ${parent_dir_name}
-                )
-            endif()
+            install(
+                DIRECTORY ${destination_directory}
+                DESTINATION ${parent_dir_name}
+            )
             set(variant_json_file ${CMAKE_CURRENT_SOURCE_DIR}/json/variants/${variant_json})
 
             # Read info from the variant specific json.
@@ -362,11 +356,6 @@ foreach(lib_idx RANGE ${lib_count_dec})
 
                 string(APPEND multilib_yaml_content "  - ${flag}\n")
             endforeach()
-            if(ENABLE_MULTILIB_HEADER_OPTIMISATION)
-                string(APPEND multilib_yaml_content "  IncludeDirs:\n")
-                string(APPEND multilib_yaml_content "  - ${parent_dir_name}/${variant}/include\n")
-                string(APPEND multilib_yaml_content "  - ${parent_dir_name}/include\n")
-            endif()
             string(APPEND multilib_yaml_content "  Group: stdlibs\n")
         else()
             # In place of a json, an error message is expected.
@@ -426,25 +415,7 @@ add_custom_command(
 )
 
 add_custom_target(multilib-yaml ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/multilib/multilib.yaml)
-if(NOT ENABLE_MULTILIB_HEADER_OPTIMISATION)
-    install(
-        FILES ${CMAKE_CURRENT_BINARY_DIR}/multilib/multilib.yaml
-        DESTINATION .
-    )
-endif()
-
-# Extract common header files which spans across multilib variant directories.
-if(ENABLE_MULTILIB_HEADER_OPTIMISATION)
-    add_custom_target(generate-multilib-common-headers ALL
-        COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/common-headers-generate.py"
-                "${CMAKE_CURRENT_BINARY_DIR}/multilib"
-                "${CMAKE_CURRENT_BINARY_DIR}/multilib-optimised"
-        COMMENT "Generating common headers"
-        DEPENDS ${all_runtime_targets} multilib-yaml
-    )
-
-    install(
-        DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/multilib-optimised/"
-        DESTINATION .
-    )
-endif()
+install(
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/multilib/multilib.yaml
+    DESTINATION .
+)

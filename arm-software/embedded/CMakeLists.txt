@@ -128,13 +128,6 @@ option(
     OFF
 )
 
-# jpenix FIXME: this apparently needs work for this to do something reasonable
-# for RISC-V targets. With this enabled, we don't get an appropriate clang-runtimes
-# dir for them right now.
-option(
-    ENABLE_MULTILIB_HEADER_OPTIMISATION "Enable multilib header optimisation phase"
-    OFF
-)
 
 option(LLVM_TOOLCHAIN_LIBRARY_OVERLAY_INSTALL
     "Make cpack build an overlay package that can be unpacked over the main toolchain to install a secondary set of libraries based on musl-embedded."
@@ -570,7 +563,6 @@ if(NOT PREBUILT_TARGET_LIBRARIES)
         -DLLVM_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}/llvm
         -DMULTILIB_JSON=${LLVM_TOOLCHAIN_MULTILIB_JSON}
         -DENABLE_VARIANTS=${ENABLE_VARIANTS_PASSTHROUGH}
-	-DENABLE_MULTILIB_HEADER_OPTIMISATION=${ENABLE_MULTILIB_HEADER_OPTIMISATION}
         -DENABLE_PARALLEL_LIB_CONFIG=${ENABLE_PARALLEL_LIB_CONFIG}
         -DENABLE_PARALLEL_LIB_BUILD=${ENABLE_PARALLEL_LIB_BUILD}
         -DPARALLEL_LIB_BUILD_LEVELS=${PARALLEL_LIB_BUILD_LEVELS}
