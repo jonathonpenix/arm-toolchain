@@ -118,7 +118,7 @@ set(LLVM_TOOLCHAIN_C_LIBRARY
     "Which C library to use."
 )
 set_property(CACHE LLVM_TOOLCHAIN_C_LIBRARY
-    PROPERTY STRINGS picolibc llvmlibc musl-embedded)
+    PROPERTY STRINGS picolibc musl-embedded)
 
 option(
     SHORT_BUILD_PATHS
@@ -322,42 +322,6 @@ add_custom_target(
 )
 add_dependencies(check-clang clang-xfail-lit-args)
 add_dependencies(check-all clang-xfail-lit-args)
-
-if(LLVM_TOOLCHAIN_C_LIBRARY STREQUAL llvmlibc)
-    install(
-        FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/llvmlibc.cfg
-        DESTINATION bin
-        COMPONENT llvm-toolchain-llvmlibc-configs
-    )
-
-    install(
-        FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/ATfE-SBOM-llvmlibc-overlay.spdx.json
-        DESTINATION .
-        COMPONENT llvm-toolchain-llvmlibc-configs
-    )
-
-    install(
-      DIRECTORY
-      ${CMAKE_CURRENT_SOURCE_DIR}/llvmlibc-samples/
-      DESTINATION samples
-      COMPONENT llvm-toolchain-llvmlibc-configs
-    )
-
-    # LLVM libc lacks a configuration for AArch64, but the AArch32 one works
-    # fine. However, setting the configuration for both architectures to the
-    # arm config directory means the baremetal config.json is never loaded,
-    # as it resides in the directory above. To ensure both are used, copy
-    # them to the same location and point libc to that.
-    set(LIBC_CFG_DIR ${CMAKE_BINARY_DIR}/llvmlibc-config)
-    file(COPY
-        ${llvmproject_src_dir}/libc/config/baremetal/config.json
-        ${llvmproject_src_dir}/libc/config/baremetal/arm/.
-        DESTINATION
-        ${LIBC_CFG_DIR}
-    )
-endif()
 
 get_directory_property(LLVM_VERSION_MAJOR DIRECTORY ${llvmproject_src_dir}/llvm DEFINITION LLVM_VERSION_MAJOR)
 get_directory_property(LLVM_VERSION_MINOR DIRECTORY ${llvmproject_src_dir}/llvm DEFINITION LLVM_VERSION_MINOR)
@@ -754,11 +718,6 @@ if(LLVM_TOOLCHAIN_C_LIBRARY STREQUAL picolibc)
     list(APPEND third_party_license_files
         ${picolibc_SOURCE_DIR}/COPYING.NEWLIB           COPYING.NEWLIB
         ${picolibc_SOURCE_DIR}/COPYING.picolibc         COPYING.picolibc
-    )
-endif()
-if(LLVM_TOOLCHAIN_C_LIBRARY STREQUAL llvmlibc)
-    list(APPEND third_party_license_files
-        ${llvmproject_src_dir}/libc/LICENSE.TXT      LIBC-LICENSE.TXT
     )
 endif()
 

@@ -21,7 +21,7 @@ set(llvmproject_src_dir ${TOOLCHAIN_SOURCE_DIR}/../..)
 # CMake arguments are loaded from the JSON file depending on which C
 # library is used, so this must be set before the JSON is processed.
 set(C_LIBRARY "picolibc" CACHE STRING "Which C library to use.")
-set_property(CACHE C_LIBRARY PROPERTY STRINGS picolibc llvmlibc musl-embedded)
+set_property(CACHE C_LIBRARY PROPERTY STRINGS picolibc musl-embedded)
 
 set(VARIANT_JSON "" CACHE STRING "JSON file to load args from.")
 if(VARIANT_JSON)
@@ -155,10 +155,8 @@ if(ENABLE_LIBC_TESTS OR ENABLE_COMPILER_RT_TESTS OR ENABLE_LIBCXX_TESTS)
             set(picocrt "crt0-semihost")
         endif()
         set(test_link_flags "-nostartfiles -l${picocrt} -lsemihost -T picolibcpp.ld")
-    elseif(C_LIBRARY STREQUAL llvmlibc)
-        # QEMU logic handled later
     else()
-        message(FATAL_ERROR "Tests can only be enabled using picolibc or llvmlibc.")
+        message(FATAL_ERROR "Tests can only be enabled using picolibc.")
     endif()
 
     set(external_lit_path "${LLVM_BINARY_DIR}/bin/llvm-lit")
@@ -289,11 +287,7 @@ endif()
 
 # jpenix FIXME: should check what this is, also probably should be checking
 # the target here I guess as it shouldn't matter for RISC-V
-if(NOT C_LIBRARY STREQUAL "llvmlibc")
-    set(compiler_rt_cmake_args
-    -DCOMPILER_RT_EXCLUDE_LIBC_PROVIDED_ARM_AEABI_BUILTINS=ON
-  )
-endif()
+set(compiler_rt_cmake_args -DCOMPILER_RT_EXCLUDE_LIBC_PROVIDED_ARM_AEABI_BUILTINS=ON)
 
 ExternalProject_Add(
     compiler_rt
@@ -643,141 +637,6 @@ if(C_LIBRARY STREQUAL musl-embedded)
 endif()
 
 
-###############################################################################
-# llvmlibc
-###############################################################################
-
-if(C_LIBRARY STREQUAL llvmlibc)
-    set(test_cmd "${lit_test_executor} @BINARY@")
-    set(lib_compile_flags "${lib_compile_flags} -Wno-error=atomic-alignment")
-
-    set(common_llvmlibc_cmake_args
-        -DCMAKE_AR=${LLVM_BINARY_DIR}/bin/llvm-ar${CMAKE_EXECUTABLE_SUFFIX}
-        -DCMAKE_ASM_COMPILER=${LLVM_BINARY_DIR}/bin/clang${CMAKE_EXECUTABLE_SUFFIX}
-        -DCMAKE_ASM_COMPILER_TARGET=${target_triple}
-        -DCMAKE_ASM_FLAGS=${lib_compile_flags}
-        -DCMAKE_BUILD_TYPE=${LIBRARY_CMAKE_BUILD_TYPE}
-        -DCMAKE_CXX_COMPILER=${LLVM_BINARY_DIR}/bin/clang++${CMAKE_EXECUTABLE_SUFFIX}
-        -DCMAKE_CXX_COMPILER_TARGET=${target_triple}
-        -DCMAKE_CXX_FLAGS=${lib_compile_flags}
-        -DCMAKE_C_COMPILER=${LLVM_BINARY_DIR}/bin/clang${CMAKE_EXECUTABLE_SUFFIX}
-        -DCMAKE_C_COMPILER_TARGET=${target_triple}
-        -DCMAKE_C_FLAGS=${lib_compile_flags}
-        -DCMAKE_INSTALL_MESSAGE=${CMAKE_INSTALL_MESSAGE}
-        -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
-        -DCMAKE_NM=${LLVM_BINARY_DIR}/bin/llvm-nm${CMAKE_EXECUTABLE_SUFFIX}
-        -DCMAKE_RANLIB=${LLVM_BINARY_DIR}/bin/llvm-ranlib${CMAKE_EXECUTABLE_SUFFIX}
-        # Let CMake know we're cross-compiling
-        -DCMAKE_SYSTEM_NAME=Generic
-        -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY
-    )
-
-    ExternalProject_Add(
-        llvmlibc
-        STAMP_DIR ${PROJECT_PREFIX}/llvmlibc/${VARIANT_BUILD_ID}/stamp
-        BINARY_DIR ${PROJECT_PREFIX}/llvmlibc/${VARIANT_BUILD_ID}/build
-        DOWNLOAD_DIR ${PROJECT_PREFIX}/llvmlibc/${VARIANT_BUILD_ID}/dl
-        TMP_DIR ${PROJECT_PREFIX}/llvmlibc/${VARIANT_BUILD_ID}/tmp
-        SOURCE_DIR ${llvmproject_src_dir}/runtimes
-        INSTALL_DIR llvmlibc/install
-        CMAKE_ARGS
-        ${compiler_launcher_cmake_args}
-        ${common_llvmlibc_cmake_args}
-        -DLIBC_TARGET_TRIPLE=${target_triple}
-        -DLIBC_CONF_TIME_64BIT=ON
-        -DLIBC_CONF_ERRNO_MODE=LIBC_ERRNO_MODE_SHARED
-        -DLIBC_CONF_PRINTF_DISABLE_FLOAT=OFF
-        -DLIBC_CONF_PRINTF_FLOAT_TO_STR_USE_FLOAT320=ON
-        -DLLVM_CMAKE_DIR=${LLVM_BINARY_DIR}/lib/cmake/llvm
-        -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON
-        -DLLVM_ENABLE_RUNTIMES=libc
-        -DLLVM_LIBC_ALL_HEADERS=ON
-        -DLLVM_LIBC_FULL_BUILD=ON
-        -DLIBC_TEST_LINK_OPTIONS_DEFAULT=-nostartfiles,-lsemihost,-T,llvmlibc.ld
-        -DLIBC_TEST_CMD=${test_cmd}
-        -DLIBC_TEST_HERMETIC_ONLY=true
-        STEP_TARGETS configure build install
-        USES_TERMINAL_CONFIGURE TRUE
-        USES_TERMINAL_BUILD TRUE
-        USES_TERMINAL_INSTALL TRUE
-        LIST_SEPARATOR ,
-        CONFIGURE_HANDLED_BY_BUILD TRUE
-        INSTALL_COMMAND ${CMAKE_COMMAND} --install .
-        # Copy llvm-libc lib directory, moving libraries out of their
-        # target-specific subdirectory.
-        COMMAND
-            ${CMAKE_COMMAND}
-            -E copy_directory
-            <INSTALL_DIR>/lib/${target_triple}
-            "${TEMP_LIB_DIR}/lib"
-        # Also copy the includes from their target-specific subdirectory.
-        COMMAND
-            ${CMAKE_COMMAND}
-            -E copy_directory
-            <INSTALL_DIR>/include/${target_triple}
-            "${TEMP_LIB_DIR}/include"
-    )
-
-    ExternalProject_Add(
-        llvmlibc-support
-        STAMP_DIR ${PROJECT_PREFIX}/llvmlibc-support/${VARIANT_BUILD_ID}/stamp
-        BINARY_DIR ${PROJECT_PREFIX}/llvmlibc-support/${VARIANT_BUILD_ID}/build
-        DOWNLOAD_DIR ${PROJECT_PREFIX}/llvmlibc-support/${VARIANT_BUILD_ID}/dl
-        TMP_DIR ${PROJECT_PREFIX}/llvmlibc-support/${VARIANT_BUILD_ID}/tmp
-        SOURCE_DIR ${TOOLCHAIN_SOURCE_DIR}/llvmlibc-support
-        INSTALL_DIR ${TEMP_LIB_DIR}
-        DEPENDS ${lib_tool_dependencies} llvmlibc-install
-        CMAKE_ARGS
-        ${compiler_launcher_cmake_args}
-        ${common_llvmlibc_cmake_args}
-        -DBOOT_FLASH_ADDRESS=${BOOT_FLASH_ADDRESS}
-        -DBOOT_FLASH_SIZE=${BOOT_FLASH_SIZE}
-        -DFLASH_ADDRESS=${FLASH_ADDRESS}
-        -DFLASH_SIZE=${FLASH_SIZE}
-        -DRAM_ADDRESS=${RAM_ADDRESS}
-        -DRAM_SIZE=${RAM_SIZE}
-        -DSTACK_SIZE=${STACK_SIZE}
-        STEP_TARGETS build install
-        USES_TERMINAL_CONFIGURE TRUE
-        USES_TERMINAL_BUILD TRUE
-        USES_TERMINAL_INSTALL TRUE
-        USES_TERMINAL_TEST TRUE
-        LIST_SEPARATOR ,
-        CONFIGURE_HANDLED_BY_BUILD TRUE
-    )
-
-    if(ENABLE_LIBC_TESTS)
-        if(NOT(TEST_EXECUTOR STREQUAL qemu))
-            message(FATAL_ERROR "LLVM-libc tests are only able to run on QEMU.")
-        endif()
-
-        add_custom_target(check-llvmlibc)
-        add_dependencies(check-all check-llvmlibc)
-
-        ExternalProject_Add_Step(
-            llvmlibc
-            check
-            COMMAND "${CMAKE_COMMAND}" --build <BINARY_DIR> --target libc-hermetic-tests -- -k 0 || true
-            DEPENDEES install
-            USES_TERMINAL TRUE
-            EXCLUDE_FROM_MAIN TRUE
-            ALWAYS TRUE
-        )
-
-        ExternalProject_Add_StepTargets(llvmlibc check)
-        ExternalProject_Add_StepDependencies(
-            llvmlibc
-            check
-            llvmlibc-build
-            llvmlibc-support-build
-            compiler_rt-install
-            cxxlibs-install
-        )
-        
-        add_dependencies(check-llvmlibc llvmlibc-check)
-    endif()
-endif()
-
 add_dependencies(clib-configure ${C_LIBRARY}-configure)
 add_dependencies(clib-build ${C_LIBRARY}-build)
 add_dependencies(clib-install ${C_LIBRARY}-install)
@@ -843,23 +702,6 @@ if(ENABLE_CXX_LIBS)
             -DLIBCXX_ENABLE_RTTI=${ENABLE_RTTI}
             )
         set(lib_compile_flags "${lib_compile_flags} -D_GNU_SOURCE")
-    elseif(C_LIBRARY STREQUAL llvmlibc)
-        set(cxxlibs_extra_cmake_options
-            -DLIBCXXABI_ENABLE_THREADS=OFF
-            -DLIBCXX_ENABLE_MONOTONIC_CLOCK=OFF
-            -DLIBCXX_ENABLE_RANDOM_DEVICE=OFF
-            -DLIBCXX_ENABLE_THREADS=OFF
-            -DLIBCXX_ENABLE_WIDE_CHARACTERS=OFF
-            -DLIBCXX_ENABLE_FILESYSTEM=OFF
-            -DLIBCXX_ENABLE_LOCALIZATION=OFF
-            -DLIBCXX_ENABLE_UNICODE=OFF
-            -DLIBUNWIND_ENABLE_THREADS=OFF
-            -DLIBCXXABI_ENABLE_EXCEPTIONS=${ENABLE_EXCEPTIONS}
-            -DLIBCXXABI_ENABLE_STATIC_UNWINDER=${ENABLE_EXCEPTIONS}
-            -DLIBCXX_ENABLE_EXCEPTIONS=${ENABLE_EXCEPTIONS}
-            -DLIBCXX_ENABLE_RTTI=${ENABLE_RTTI}
-            )
-            set(lib_compile_flags "${lib_compile_flags} -D_LIBCPP_PRINT=1")
     endif()
 
     ExternalProject_Add(

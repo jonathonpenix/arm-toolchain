@@ -17,25 +17,21 @@ if(NOT ${armtoolchain_COMMIT} MATCHES "^[a-f0-9]+$")
     )
 endif()
 
-if(NOT (LLVM_TOOLCHAIN_C_LIBRARY STREQUAL llvmlibc)) # libc in a separate repo?
-    if(LLVM_TOOLCHAIN_C_LIBRARY STREQUAL musl-embedded)
-        set(base_library musl)
-    else()
-        set(base_library ${LLVM_TOOLCHAIN_C_LIBRARY})
-    endif()
-
-    execute_process(
-        COMMAND git -C ${${base_library}_SOURCE_DIR} rev-parse HEAD
-        OUTPUT_VARIABLE ${base_library}_COMMIT
-        OUTPUT_STRIP_TRAILING_WHITESPACE 
-        COMMAND_ERROR_IS_FATAL ANY
-    )
-    set(LLVM_TOOLCHAIN_C_LIBRARY_URL ${${base_library}_URL})
-    set(LLVM_TOOLCHAIN_C_LIBRARY_COMMIT ${${base_library}_COMMIT})
+# Supported libcs are all in a separate repo
+if(LLVM_TOOLCHAIN_C_LIBRARY STREQUAL musl-embedded)
+    set(base_library musl)
 else()
-    set(LLVM_TOOLCHAIN_C_LIBRARY_URL "https://github.com/arm/arm-toolchain/tree/arm-software/libc")
-    set(LLVM_TOOLCHAIN_C_LIBRARY_COMMIT ${armtoolchain_COMMIT})
+    set(base_library ${LLVM_TOOLCHAIN_C_LIBRARY})
 endif()
+
+execute_process(
+    COMMAND git -C ${${base_library}_SOURCE_DIR} rev-parse HEAD
+    OUTPUT_VARIABLE ${base_library}_COMMIT
+    OUTPUT_STRIP_TRAILING_WHITESPACE 
+    COMMAND_ERROR_IS_FATAL ANY
+)
+set(LLVM_TOOLCHAIN_C_LIBRARY_URL ${${base_library}_URL})
+set(LLVM_TOOLCHAIN_C_LIBRARY_COMMIT ${${base_library}_COMMIT})
 
 configure_file(
     ${CMAKE_CURRENT_LIST_DIR}/VERSION.txt.in
