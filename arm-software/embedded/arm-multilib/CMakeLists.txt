@@ -36,18 +36,6 @@ option(
     "Enable tests that use QEMU. This option is ON by default."
     ON
 )
-option(
-    ENABLE_FVP_TESTING
-    "Enable tests that use FVPs. This option is OFF by default."
-)
-set(
-    FVP_INSTALL_DIR
-    "" CACHE STRING
-    "The directory in which the FVP models are installed. These are not
-    included in this repository, but can be downloaded by the script
-    fvp/get_fvps.sh"
-)
-set(FVP_CONFIG_DIR "${TOOLCHAIN_SOURCE_DIR}/fvp/config" CACHE STRING "The directory in which the FVP models are installed.")
 # jpenix FIXME: this apparently needs work for this to do something reasonable
 # for RISC-V targets. With this enabled, we don't get an appropriate clang-runtimes
 # dir for them right now.
@@ -83,10 +71,9 @@ if(CMAKE_CXX_COMPILER_LAUNCHER)
 endif()
 
 # Arguments to pass down to the library projects.
+# jpenix FIXME: this is kinda goofy on its own
 foreach(arg
     LLVM_BINARY_DIR
-    FVP_INSTALL_DIR
-    FVP_CONFIG_DIR
 )
     if(${arg})
         list(APPEND passthrough_dirs "-D${arg}=${${arg}}")
@@ -211,9 +198,9 @@ foreach(lib_idx RANGE ${lib_count_dec})
             file(READ ${variant_json_file} variant_json_str)
             string(JSON test_executor GET ${variant_json_str} "args" "common" "TEST_EXECUTOR")
 
-            # The multilib project can be configured to disable QEMU and/or FVP
+            # The multilib project can be configured to disable QEMU
             # testing, which will need to override the settings from the json.
-            if((test_executor STREQUAL "qemu" AND NOT ${ENABLE_QEMU_TESTING}) OR (test_executor STREQUAL "fvp" AND NOT ${ENABLE_FVP_TESTING}))
+            if(test_executor STREQUAL "qemu" AND NOT ${ENABLE_QEMU_TESTING})
                 list(APPEND additional_cmake_args "-DENABLE_LIBC_TESTS=OFF" "-DENABLE_COMPILER_RT_TESTS=OFF" "-DENABLE_LIBCXX_TESTS=OFF")
                 set(read_ENABLE_LIBC_TESTS "OFF")
                 set(read_ENABLE_COMPILER_RT_TESTS "OFF")

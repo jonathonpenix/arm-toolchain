@@ -59,17 +59,7 @@ set(TARGET_ARCH ${TARGET_ARCH_def} CACHE STRING "Architecture being targetted.")
 set(VARIANT ${VARIANT_def} CACHE STRING "Name for the variant, usually architecture + suffix.")
 set(COMPILE_FLAGS ${COMPILE_FLAGS_def} CACHE STRING "Flags required to build the variant.")
 set(TEST_EXECUTOR ${TEST_EXECUTOR_def} CACHE STRING "Program used to run tests.")
-set_property(CACHE TEST_EXECUTOR PROPERTY STRINGS fvp qemu)
-set(FVP_MODEL ${FVP_MODEL_def} CACHE STRING "FVP model to use, if FVP is the test executor.")
-set(FVP_CONFIG ${FVP_CONFIG_def} CACHE STRING "FVP config to use, if FVP is the test executor.")
-set(
-    FVP_INSTALL_DIR
-    "" CACHE STRING
-    "The directory in which the FVP models are installed. These are not
-    included in this repository, but can be downloaded by the script
-    fvp/get_fvps.sh"
-)
-set(FVP_CONFIG_DIR "${TOOLCHAIN_SOURCE_DIR}/fvp/config" CACHE STRING "The directory in which the FVP models are installed.")
+set_property(CACHE TEST_EXECUTOR PROPERTY STRINGS qemu)
 
 set(QEMU_MACHINE ${QEMU_MACHINE_def} CACHE STRING "Machine for QEMU to emulate.")
 set(QEMU_CPU ${QEMU_CPU_def} CACHE STRING "CPU for QEMU to emulate.")
@@ -168,8 +158,6 @@ if(ENABLE_LIBC_TESTS OR ENABLE_COMPILER_RT_TESTS OR ENABLE_LIBCXX_TESTS)
     if(C_LIBRARY STREQUAL picolibc)
         if(TEST_EXECUTOR STREQUAL qemu)
             set(picocrt "crt0-semihost")
-        elseif(TEST_EXECUTOR STREQUAL fvp)
-            set(picocrt "crt0-semihost-fvp")
         endif()
         set(test_link_flags "-nostartfiles -l${picocrt} -lsemihost -T picolibcpp.ld")
     elseif(C_LIBRARY STREQUAL llvmlibc)
@@ -210,29 +198,6 @@ if(ENABLE_LIBC_TESTS OR ENABLE_COMPILER_RT_TESTS OR ENABLE_LIBCXX_TESTS)
         set(
             lit_test_executor
             ${CMAKE_CURRENT_SOURCE_DIR}/test-support/lit-exec-qemu.py
-            ${test_executor_params}
-        )
-    elseif(TEST_EXECUTOR STREQUAL fvp)
-        if(NOT EXISTS "${FVP_INSTALL_DIR}")
-            message(FATAL_ERROR "FVPs must be installed to run tests using FVPs.")
-        endif()
-        set(
-            test_executor_params
-            --fvp-install-dir ${FVP_INSTALL_DIR}
-            --fvp-config-dir ${FVP_CONFIG_DIR}
-            --fvp-model ${FVP_MODEL}
-        )
-        string(REPLACE " " ";" fvp_config_list ${FVP_CONFIG})
-        foreach(cfg ${fvp_config_list})
-            set(
-                test_executor_params
-                ${test_executor_params}
-                --fvp-config ${cfg}
-            )
-        endforeach()
-        set(
-            lit_test_executor
-            ${CMAKE_CURRENT_SOURCE_DIR}/test-support/lit-exec-fvp.py
             ${test_executor_params}
         )
     endif()
@@ -532,14 +497,11 @@ if(C_LIBRARY STREQUAL picolibc)
 
         # Timeout multipliers. The actual timeout value used in testing is:
         # Timeout in seconds (defined in the picolibc's testing specs) x Timeout multiplier
-        # In general, tests execute slower with FVPs compared to qemu. However certain
-        # variants can also be slower due to features enabled, for example: 
+        # Certain variants can also be slower due to features enabled, for example: 
         # * Armv6m big-endian
         # * Armv7m big-endian
         # * Armv8.1-M Main PACBTI optimized for code size
-        if(TEST_EXECUTOR STREQUAL fvp)
-            set(timeout_multiplier 2)
-        else()
+        if(TEST_EXECUTOR STREQUAL qemu)
             set(timeout_multiplier 1)
         endif()
 

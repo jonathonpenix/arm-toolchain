@@ -71,10 +71,6 @@ see corresponding pull requests for references.
 The resulting binaries are covered under their respective open source licenses,
 see component links above.
 
-Testing for some targets uses the freely-available but not open-source Arm FVP
-models, which have their own licenses. These are not used by default, see
-[Building from source](docs/building-from-source.md) for details.
-
 ## Host platforms
 
 Arm Toolchain for Embedded is built and tested on:

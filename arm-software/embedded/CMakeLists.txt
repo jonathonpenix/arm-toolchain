@@ -113,18 +113,6 @@ option(
     "Enable tests that use QEMU. This option is ON by default."
     ON
 )
-option(
-    ENABLE_FVP_TESTING
-    "Enable tests that use FVPs. This option is OFF by default."
-)
-set(
-    FVP_INSTALL_DIR
-    "${CMAKE_CURRENT_SOURCE_DIR}/fvp/install" CACHE STRING
-    "The directory in which the FVP models are installed. These are not
-    included in this repository, but can be downloaded by the script
-    fvp/get_fvps.sh"
-)
-set(FVP_CONFIG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/fvp/config")
 set(LLVM_TOOLCHAIN_C_LIBRARY
     "picolibc" CACHE STRING
     "Which C library to use."
@@ -661,10 +649,7 @@ if(NOT PREBUILT_TARGET_LIBRARIES)
         -DENABLE_PARALLEL_LIB_CONFIG=${ENABLE_PARALLEL_LIB_CONFIG}
         -DENABLE_PARALLEL_LIB_BUILD=${ENABLE_PARALLEL_LIB_BUILD}
         -DPARALLEL_LIB_BUILD_LEVELS=${PARALLEL_LIB_BUILD_LEVELS}
-        -DFVP_INSTALL_DIR=${FVP_INSTALL_DIR}
         -DENABLE_QEMU_TESTING=${ENABLE_QEMU_TESTING}
-        -DENABLE_FVP_TESTING=${ENABLE_FVP_TESTING}
-        -DFVP_CONFIG_DIR=${CMAKE_CURRENT_SOURCE_DIR}/fvp/config
         -DFETCHCONTENT_SOURCE_DIR_PICOLIBC=${FETCHCONTENT_SOURCE_DIR_PICOLIBC}
         -DFETCHCONTENT_SOURCE_DIR_NEWLIB=${FETCHCONTENT_SOURCE_DIR_NEWLIB}
         -DFETCHCONTENT_SOURCE_DIR_MUSL=${FETCHCONTENT_SOURCE_DIR_MUSL}

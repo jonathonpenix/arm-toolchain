@@ -10,9 +10,6 @@
 # The script creates a build of the toolchain in the 'build' directory, inside
 # the repository tree.
 
-# If FVPs have been installed, the environment variable `FVP_INSTALL_DIR`
-# should be set to their install location to enable their use in tests.
-
 set -ex
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
@@ -22,10 +19,6 @@ clang --version
 
 export CC=clang
 export CXX=clang++
-
-if [[ ! -z "${FVP_INSTALL_DIR}" ]]; then
-    EXTRA_CMAKE_ARGS="${EXTRA_CMAKE_ARGS} -DENABLE_FVP_TESTING=ON -DFVP_INSTALL_DIR=${FVP_INSTALL_DIR}"
-fi
 
 mkdir -p "${REPO_ROOT}"/build
 cd "${REPO_ROOT}"/build

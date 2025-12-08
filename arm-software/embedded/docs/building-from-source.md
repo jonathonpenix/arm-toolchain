@@ -25,42 +25,6 @@ Testing with QEMU is enabled by default, but can be disabled using the
 `-DENABLE_QEMU_TESTING=OFF` CMake option if testing is not required or QEMU is
 not installed.
 
-Library testing may also use:
-* [Arm Fixed Virtual Platforms (FVP)](https://developer.arm.com/Tools%20and%20Software/Fixed%20Virtual%20Platforms)
-
-Testing with FVPs is disabled by default, but QEMU tests will still be run, and
-all library variants will still be built. Testing with FVPs can be enabled by
-setting the `-DENABLE_FVP_TESTING=ON` CMake option if you have installed the
-models as described below.
-
-Some recent targets are not supported by QEMU, for these the Arm FVP models are
-used instead. These models are available free-of-charge but are not
-open-source, and come with their own licenses.
-
-On Linux, these models can be downloaded and installed (into the source tree) with the
-`fvp/get_fvps.sh` script. By
-default, `get_fvps.sh` will run the installers for packages which have them,
-which will prompt you to agree to their licenses. Some of the packages do not
-have installers, instead they place their license file into the
-`fvp/license_terms` directory, which you should read before continuing.
-
-The installer for the cryptography plugin requires a graphical display to run:
-it cannot run in a pure terminal session such as you might start via SSH. Also,
-it will prompt for a directory to install the plugin into. You should enter the
-pathname `fvp/install` relative to the root of your checkout. The installer
-will automatically append a subdirectory `FastModelsPortfolio_<version>` to the end
-of that, and respond with a warning such as 'Directory [...] not found (but in
-patch mode). Continue installation?' Say yes to this prompt, and continue
-clicking 'Next' until installation is complete.
-
-For non-interactive use (for example in CI systems), `get_fvps.sh` can be run
-with the `--non-interactive` option, which causes it to implicitly accept all
-of the EULAs and set up the correct install directories.
-
-If you have previously downloaded and installed the FVPs outside of the source
-tree, you can set the `-DFVP_INSTALL_DIR=...` cmake option to set the path to
-them.
-
 ## Customizing
 
 To build additional library variants, add the JSON configuration under
