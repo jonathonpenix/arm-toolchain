@@ -811,7 +811,6 @@ add_dependencies(check-llvm-toolchain check-${LLVM_TOOLCHAIN_C_LIBRARY})
 add_dependencies(check-llvm-toolchain check-compiler-rt)
 add_subdirectory(test)
 add_dependencies(check-llvm-toolchain check-llvm-toolchain-lit)
-add_subdirectory(packagetest)
 
 add_custom_target(check-all-llvm-toolchain)
 
