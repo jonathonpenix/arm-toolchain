@@ -657,7 +657,7 @@ install(
 )
 
 install(
-    FILES CHANGELOG.md LICENSE.txt README.md ATfE-SBOM.spdx.json
+    FILES CHANGELOG.md LICENSE.txt README.md
     DESTINATION .
     COMPONENT llvm-toolchain-docs
 )
