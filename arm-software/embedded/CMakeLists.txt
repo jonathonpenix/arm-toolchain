@@ -177,7 +177,6 @@ set(LLVM_TOOLCHAIN_DISTRIBUTION_COMPONENTS
     llvm-toolchain-config-files
     llvm-toolchain-docs
     llvm-toolchain-libs
-    llvm-toolchain-samples
     llvm-toolchain-third-party-licenses
     CACHE STRING "Components defined by this CMakeLists that should be
 installed by the install-llvm-toolchain target"
@@ -730,20 +729,6 @@ while(third_party_license_files)
         RENAME ${destination_name}
     )
 endwhile()
-
-# Install samples
-if(WIN32)
-    set(sample_files_regex "Makefile|.*\\.(c|conf|cpp|ld|md|bat)")
-else()
-    set(sample_files_regex "Makefile|.*\\.(c|conf|cpp|ld|md)")
-endif()
-install(
-    DIRECTORY samples
-    DESTINATION .
-    COMPONENT llvm-toolchain-samples
-    FILES_MATCHING REGEX "${sample_files_regex}"
-)
-
 
 # LLVM-style install
 # To use it:
