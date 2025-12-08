@@ -1003,6 +1003,22 @@ if(ENABLE_CXX_LIBS)
                 -DLLVM_EXTERNAL_LIT=${external_lit_path}
             )
         endif()
+    elseif(C_LIBRARY STREQUAL musl-embedded)
+        set(cxxlibs_extra_cmake_options
+            -DLIBCXX_HAS_MUSL_LIBC=ON
+            -DLIBCXXABI_ENABLE_THREADS=OFF
+            -DLIBCXX_ENABLE_RANDOM_DEVICE=OFF
+            -DLIBCXX_ENABLE_THREADS=OFF
+            -DLIBCXX_ENABLE_FILESYSTEM=OFF
+            -DLIBCXX_ENABLE_LOCALIZATION=OFF
+            -DLIBUNWIND_ENABLE_THREADS=OFF
+            -DLIBCXX_ENABLE_UNICODE=OFF
+            -DLIBCXXABI_ENABLE_EXCEPTIONS=${ENABLE_EXCEPTIONS}
+            -DLIBCXXABI_ENABLE_STATIC_UNWINDER=${ENABLE_EXCEPTIONS}
+            -DLIBCXX_ENABLE_EXCEPTIONS=${ENABLE_EXCEPTIONS}
+            -DLIBCXX_ENABLE_RTTI=${ENABLE_RTTI}
+            )
+        set(lib_compile_flags "${lib_compile_flags} -D_GNU_SOURCE")
     elseif(C_LIBRARY STREQUAL llvmlibc)
         set(cxxlibs_extra_cmake_options
             -DLIBCXXABI_ENABLE_THREADS=OFF
