@@ -21,7 +21,7 @@ set(llvmproject_src_dir ${TOOLCHAIN_SOURCE_DIR}/../..)
 # CMake arguments are loaded from the JSON file depending on which C
 # library is used, so this must be set before the JSON is processed.
 set(C_LIBRARY "picolibc" CACHE STRING "Which C library to use.")
-set_property(CACHE C_LIBRARY PROPERTY STRINGS picolibc newlib newlib-nano llvmlibc musl-embedded)
+set_property(CACHE C_LIBRARY PROPERTY STRINGS picolibc llvmlibc musl-embedded)
 
 set(VARIANT_JSON "" CACHE STRING "JSON file to load args from.")
 if(VARIANT_JSON)
@@ -37,12 +37,7 @@ if(VARIANT_JSON)
         set(${json_param}_def ${json_val})
     endforeach()
     # Load arguments specific to the chosen library, overwriting any existing values.
-    if(C_LIBRARY MATCHES "^newlib")
-        # Treat newlib variants as newlib for library compatibility
-        string(JSON json_args GET ${variant_json_read} "args" "newlib")
-    else()
-        string(JSON json_args GET ${variant_json_read} "args" ${C_LIBRARY})
-    endif()
+    string(JSON json_args GET ${variant_json_read} "args" ${C_LIBRARY})
     string(JSON json_args_len LENGTH ${json_args})
     math(EXPR json_args_len_dec "${json_args_len} - 1")
     foreach(json_idx RANGE ${json_args_len_dec})
@@ -85,7 +80,7 @@ set(LIBRARY_BUILD_TYPE ${LIBRARY_BUILD_TYPE_def} CACHE STRING "Build type to use
 set_property(CACHE LIBRARY_BUILD_TYPE PROPERTY STRINGS ${SUPPORTED_LIBRARY_BUILD_TYPES})
 
 set(ENABLE_CXX_LIBS ${ENABLE_CXX_LIBS_def} CACHE BOOL "Build CXX libs")
-set(ENABLE_LIBC_TESTS ${ENABLE_LIBC_TESTS_def} CACHE BOOL "Enable libc tests (picolibc, newlib, newlib-nano or llvm-libc).")
+set(ENABLE_LIBC_TESTS ${ENABLE_LIBC_TESTS_def} CACHE BOOL "Enable libc tests (picolibc only).")
 set(ENABLE_COMPILER_RT_TESTS ${ENABLE_COMPILER_RT_TESTS_def} CACHE BOOL "Enable compiler-rt tests.")
 set(ENABLE_LIBCXX_TESTS ${ENABLE_LIBCXX_TESTS_def} CACHE BOOL "Enable libcxx tests.")
 set(LLVM_BINARY_DIR "" CACHE PATH "Path to LLVM toolchain root to build libraries with")
@@ -647,139 +642,6 @@ if(C_LIBRARY STREQUAL musl-embedded)
     )
 endif()
 
-# jpenix FIXME: I'll also need to go do some plumbing in libc++ built against musl
-
-###############################################################################
-# newlib
-###############################################################################
-
-if(C_LIBRARY MATCHES "^newlib")
-    if(ENABLE_LIBC_TESTS)
-        message(FATAL_ERROR "Tests cannot yet be enabled using newlib libc.")
-    endif()
-
-    if(C_LIBRARY STREQUAL newlib-nano)
-        set(newlib_optim_flags "-Oz")
-        if(TARGET_ARCH MATCHES "^aarch64")
-            # When trying to build newlib-nano on AArch64, fall back to regular newlib
-            # See https://gitlab.arm.com/tooling/gnu-devtools-for-arm/-/blob/9e3db8c042400c9c59686dec8eda2e8c44e5fb5d/build-baremetal-toolchain.sh#L625
-            # ARMGCC just skips building the nano libs for AArch64, but in order to not break integration and testing of multilib, we are building
-            # regular newlib for AArch64 with extreme size optimisation and calling it newlib-nano.
-            set(newlib_flags
-                --enable-newlib-io-long-long
-                --enable-newlib-register-fini
-                --disable-newlib-supplied-syscalls
-                --enable-newlib-io-c99-formats
-                --disable-nls
-                --enable-lite-exit
-                --disable-multilib
-                --enable-newlib-retargetable-locking)
-        else()
-            # Taken from https://gitlab.arm.com/tooling/gnu-devtools-for-arm/-/blob/9e3db8c042400c9c59686dec8eda2e8c44e5fb5d/build-baremetal-toolchain.sh#L582
-            set(newlib_flags
-                --disable-newlib-supplied-syscalls
-                --disable-nls
-                --enable-lite-exit
-                --disable-multilib
-                --enable-newlib-retargetable-locking
-                --enable-newlib-nano-malloc
-                --disable-newlib-unbuf-stream-opt
-                --enable-newlib-reent-small
-                --disable-newlib-fseek-optimization
-                --enable-newlib-nano-formatted-io
-                --disable-newlib-fvwrite-in-streamio
-                --disable-newlib-wide-orient
-                --enable-lite-exit
-                --enable-newlib-global-atexit)
-        endif()
-    else()
-        if(LIBRARY_BUILD_TYPE STREQUAL minsizerelease)
-            set(newlib_optim_flags "-Os")
-        elseif((LIBRARY_BUILD_TYPE STREQUAL release) OR (LIBRARY_BUILD_TYPE STREQUAL releasewithdebuginfo))
-            set(newlib_optim_flags "-O3")
-        endif()
-        set(newlib_flags
-            --enable-newlib-io-long-long
-            --enable-newlib-register-fini
-            --disable-newlib-supplied-syscalls
-            --enable-newlib-io-c99-formats
-            --disable-nls
-            --enable-lite-exit
-            --disable-multilib
-            --enable-newlib-retargetable-locking)
-    endif()
-
-    include(${TOOLCHAIN_SOURCE_DIR}/cmake/fetch_newlib.cmake)
-    set(build_env
-        "CC_FOR_TARGET=${LLVM_BINARY_DIR}/bin/clang -target ${target_triple} -ffreestanding"
-        "CXX_FOR_TARGET=${LLVM_BINARY_DIR}/bin/clang++ -target ${target_triple} -ffreestanding"
-        "AR_FOR_TARGET=${LLVM_BINARY_DIR}/bin/llvm-ar"
-        "NM_FOR_TARGET=${LLVM_BINARY_DIR}/bin/llvm-nm"
-        "OBJDUMP_FOR_TARGET=${LLVM_BINARY_DIR}/bin/llvm-objdump"
-        "RANLIB_FOR_TARGET=${LLVM_BINARY_DIR}/bin/llvm-ranlib"
-        "READELF_FOR_TARGET=${LLVM_BINARY_DIR}/bin/llvm-readelf"
-        "STRIP_FOR_TARGET=${LLVM_BINARY_DIR}/bin/llvm-strip"
-        "CFLAGS_FOR_TARGET=${flags} ${newlib_optim_flags} ${lib_compile_flags} -Wno-error=implicit-function-declaration -D__USES_INITFINI__ -U_HAVE_INIT_FINI"
-        "CCASFLAGS=${flags} ${newlib_optim_flags} ${lib_compile_flags} -Wno-error=implicit-function-declaration -D__USES_INITFINI__ -U_HAVE_INIT_FINI"
-    )
-
-    include(ProcessorCount)
-    set(make_flags)
-    ProcessorCount(nproc)
-    if(NOT nproc EQUAL 0)
-        set(make_flags -j${nproc})
-    endif()
-
-    ExternalProject_Add(
-        ${C_LIBRARY}
-        STAMP_DIR ${PROJECT_PREFIX}/${C_LIBRARY}/${VARIANT_BUILD_ID}/stamp
-        BINARY_DIR ${PROJECT_PREFIX}/${C_LIBRARY}/${VARIANT_BUILD_ID}/build
-        DOWNLOAD_DIR ${PROJECT_PREFIX}/${C_LIBRARY}/${VARIANT_BUILD_ID}/dl
-        TMP_DIR ${PROJECT_PREFIX}/${C_LIBRARY}/${VARIANT_BUILD_ID}/tmp
-        SOURCE_DIR ${newlib_SOURCE_DIR}
-        INSTALL_DIR ${TEMP_LIB_DIR}
-        CONFIGURE_COMMAND
-            ${CMAKE_COMMAND} -E env ${build_env}
-            <SOURCE_DIR>/configure
-            --target=${target_triple}
-            --prefix "${TEMP_LIB_DIR}"
-            --exec_prefix <BINARY_DIR>/tmpinstall
-            ${newlib_flags}
-        BUILD_COMMAND
-            ${CMAKE_COMMAND} -E env ${build_env}
-            make ${make_flags}
-            &&
-            "${LLVM_BINARY_DIR}/bin/llvm-ar" rcs
-            <BINARY_DIR>/${target_triple}/libgloss/${cpu_family}/libcrt0-rdimon.a
-            <BINARY_DIR>/${target_triple}/libgloss/${cpu_family}/rdimon-crt0.o
-            &&
-            "${LLVM_BINARY_DIR}/bin/llvm-ar" rcs
-            <BINARY_DIR>/${target_triple}/libgloss/${cpu_family}/libcrt0-nosys.a
-            <BINARY_DIR>/${target_triple}/libgloss/${cpu_family}/crt0.o
-        INSTALL_COMMAND
-            make install
-            &&
-            ${CMAKE_COMMAND} -E copy_directory
-            <BINARY_DIR>/tmpinstall/${target_triple}
-            ${TEMP_LIB_DIR}
-            &&
-            ${CMAKE_COMMAND} -E copy
-            <BINARY_DIR>/${target_triple}/libgloss/${cpu_family}/libcrt0-rdimon.a
-            ${TEMP_LIB_DIR}/lib
-            &&
-            ${CMAKE_COMMAND} -E copy
-            <BINARY_DIR>/${target_triple}/libgloss/${cpu_family}/libcrt0-nosys.a
-            ${TEMP_LIB_DIR}/lib
-        # FIXME: TEST_COMMAND?
-        USES_TERMINAL_CONFIGURE TRUE
-        USES_TERMINAL_BUILD TRUE
-        USES_TERMINAL_INSTALL TRUE
-        # Always run the build command so that incremental builds are correct.
-        CONFIGURE_HANDLED_BY_BUILD TRUE
-        TEST_EXCLUDE_FROM_MAIN TRUE
-        STEP_TARGETS configure build install # FIXME: test?
-    )
-endif()
 
 ###############################################################################
 # llvmlibc
@@ -998,34 +860,6 @@ if(ENABLE_CXX_LIBS)
             -DLIBCXX_ENABLE_RTTI=${ENABLE_RTTI}
             )
             set(lib_compile_flags "${lib_compile_flags} -D_LIBCPP_PRINT=1")
-    elseif(C_LIBRARY MATCHES "^newlib")
-        set(cxxlibs_extra_cmake_options
-            -DLIBCXXABI_ENABLE_THREADS=OFF
-            -DLIBCXX_ENABLE_MONOTONIC_CLOCK=OFF
-            -DLIBCXX_ENABLE_RANDOM_DEVICE=OFF
-            -DLIBCXX_ENABLE_THREADS=OFF
-            -DLIBUNWIND_ENABLE_THREADS=OFF
-            -DLIBCXXABI_ENABLE_EXCEPTIONS=${ENABLE_EXCEPTIONS}
-            -DLIBCXXABI_ENABLE_STATIC_UNWINDER=${ENABLE_EXCEPTIONS}
-            -DLIBCXX_ENABLE_EXCEPTIONS=${ENABLE_EXCEPTIONS}
-            -DLIBCXX_ENABLE_RTTI=${ENABLE_RTTI}
-        )
-
-        if(C_LIBRARY STREQUAL newlib-nano)
-            set(lib_compile_flags "${lib_compile_flags} -Oz")
-        endif()
-
-        if(C_LIBRARY STREQUAL newlib-nano AND NOT TARGET_ARCH MATCHES "^aarch64")
-            set(cxxlibs_extra_cmake_options
-                ${cxxlibs_extra_cmake_options}
-                -DLIBCXX_ENABLE_WIDE_CHARACTERS=OFF
-            )
-        else()
-            set(cxxlibs_extra_cmake_options
-                ${cxxlibs_extra_cmake_options}
-                -DLIBCXX_ENABLE_WIDE_CHARACTERS=ON
-            )
-        endif()
     endif()
 
     ExternalProject_Add(

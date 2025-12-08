@@ -118,7 +118,7 @@ set(LLVM_TOOLCHAIN_C_LIBRARY
     "Which C library to use."
 )
 set_property(CACHE LLVM_TOOLCHAIN_C_LIBRARY
-    PROPERTY STRINGS picolibc newlib newlib-nano llvmlibc musl-embedded)
+    PROPERTY STRINGS picolibc llvmlibc musl-embedded)
 
 option(
     SHORT_BUILD_PATHS
@@ -136,18 +136,8 @@ option(
     OFF
 )
 
-# Previously, the LLVM_TOOLCHAIN_LIBRARY_OVERLAY_INSTALL option was
-# called LLVM_TOOLCHAIN_NEWLIB_OVERLAY_INSTALL. Detect a setting of
-# that name, in case it's in an existing CMakeCache.txt or command
-# line, and use it to set the default for the more general option
-# name.
-if(LLVM_TOOLCHAIN_NEWLIB_OVERLAY_INSTALL)
-  set(overlay_install_default ON)
-else()
-  set(overlay_install_default OFF)
-endif()
 option(LLVM_TOOLCHAIN_LIBRARY_OVERLAY_INSTALL
-    "Make cpack build an overlay package that can be unpacked over the main toolchain to install a secondary set of libraries based on newlib or llvm-libc."
+    "Make cpack build an overlay package that can be unpacked over the main toolchain to install a secondary set of libraries based on musl-embedded."
     ${overlay_install_default})
 if(LLVM_TOOLCHAIN_LIBRARY_OVERLAY_INSTALL)
   if(LLVM_TOOLCHAIN_C_LIBRARY STREQUAL "picolibc")
@@ -241,11 +231,11 @@ include(ProcessorCount)
 # Check out and patch eld
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_eld.cmake)
 
-# Check out and patch picolibc or newlib if required.
+# Check out and patch picolibc or musl-embedded if required.
 #
 # If you'd rather check out and patch manually then run cmake with
 # -DFETCHCONTENT_SOURCE_DIR_PICOLIBC=/path/to/picolibc
-# -DFETCHCONTENT_SOURCE_DIR_NEWLIB=/path/to/newlib
+# -DFETCHCONTENT_SOURCE_DIR_MUSL=/path/to/musl
 #
 # By default check out will be silent but this can be changed by running
 # cmake with -DFETCHCONTENT_QUIET=OFF
@@ -254,9 +244,6 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_eld.cmake)
 # cmake . -DFETCHCONTENT_FULLY_DISCONNECTED=ON
 if(LLVM_TOOLCHAIN_C_LIBRARY STREQUAL picolibc)
     include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_picolibc.cmake)
-endif()
-if(LLVM_TOOLCHAIN_C_LIBRARY MATCHES "^newlib")
-    include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_newlib.cmake)
 endif()
 if(LLVM_TOOLCHAIN_C_LIBRARY STREQUAL musl-embedded)
     include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_musl-embedded.cmake)
@@ -281,28 +268,7 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 endif()
 ##################################################################################################
 
-if(LLVM_TOOLCHAIN_C_LIBRARY MATCHES "^newlib")
-    install(
-        FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/${LLVM_TOOLCHAIN_C_LIBRARY}.cfg
-        DESTINATION bin
-        COMPONENT llvm-toolchain-${LLVM_TOOLCHAIN_C_LIBRARY}-configs
-    )
-    install(
-        FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/ATfE-SBOM-newlib-overlay.spdx.json
-        DESTINATION .
-        COMPONENT llvm-toolchain-${LLVM_TOOLCHAIN_C_LIBRARY}-configs
-    )
-    install(
-        DIRECTORY
-        ${CMAKE_CURRENT_SOURCE_DIR}/newlib-samples/
-        DESTINATION samples
-        COMPONENT llvm-toolchain-${LLVM_TOOLCHAIN_C_LIBRARY}-configs
-    )
-endif()
-
-# Not sure we need the SBOM and I'm not sure we want to deal with samples right now,
+# jpenix FIXME: Not sure we need the SBOM and I'm not sure we want to deal with samples right now,
 # so we can probably merge all this later.
 if(LLVM_TOOLCHAIN_C_LIBRARY STREQUAL musl-embedded)
     install(
@@ -518,12 +484,10 @@ add_custom_target(
     -DArmToolchainForEmbedded_VERSION=${ArmToolchainForEmbedded_VERSION}
     -DArmToolchainForEmbedded_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
     -Dllvmproject_src_dir=${llvmproject_src_dir}
-    # at most one of picolibc and newlib options is needed, but easiest to
+    # at most one of picolibc and musl options is needed, but easiest to
     # specify both definitions
     -Dpicolibc_SOURCE_DIR=${picolibc_SOURCE_DIR}
     -Dpicolibc_URL=${picolibc_URL}
-    -Dnewlib_SOURCE_DIR=${newlib_SOURCE_DIR}
-    -Dnewlib_URL=${newlib_URL}
     -Dmusl_SOURCE_DIR=${musl_SOURCE_DIR}
     -Dmusl_URL=${musl_URL}
     # but we do tell the script which library we're actually using
@@ -651,7 +615,6 @@ if(NOT PREBUILT_TARGET_LIBRARIES)
         -DPARALLEL_LIB_BUILD_LEVELS=${PARALLEL_LIB_BUILD_LEVELS}
         -DENABLE_QEMU_TESTING=${ENABLE_QEMU_TESTING}
         -DFETCHCONTENT_SOURCE_DIR_PICOLIBC=${FETCHCONTENT_SOURCE_DIR_PICOLIBC}
-        -DFETCHCONTENT_SOURCE_DIR_NEWLIB=${FETCHCONTENT_SOURCE_DIR_NEWLIB}
         -DFETCHCONTENT_SOURCE_DIR_MUSL=${FETCHCONTENT_SOURCE_DIR_MUSL}
         -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
         -DPROJECT_PREFIX=${multilib_prefix}
@@ -791,12 +754,6 @@ if(LLVM_TOOLCHAIN_C_LIBRARY STREQUAL picolibc)
     list(APPEND third_party_license_files
         ${picolibc_SOURCE_DIR}/COPYING.NEWLIB           COPYING.NEWLIB
         ${picolibc_SOURCE_DIR}/COPYING.picolibc         COPYING.picolibc
-    )
-endif()
-if(LLVM_TOOLCHAIN_C_LIBRARY MATCHES "^newlib")
-    list(APPEND third_party_license_files
-        ${newlib_SOURCE_DIR}/COPYING.NEWLIB             COPYING.NEWLIB
-        ${newlib_SOURCE_DIR}/COPYING.LIBGLOSS           COPYING.LIBGLOSS
     )
 endif()
 if(LLVM_TOOLCHAIN_C_LIBRARY STREQUAL llvmlibc)
