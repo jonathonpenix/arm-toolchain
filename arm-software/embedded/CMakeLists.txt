@@ -166,7 +166,6 @@ set(LLVM_DISTRIBUTION_COMPONENTS
     CACHE STRING ""
 )
 set(LLVM_TOOLCHAIN_DISTRIBUTION_COMPONENTS
-    llvm-toolchain-config-files
     llvm-toolchain-docs
     llvm-toolchain-libs
     llvm-toolchain-third-party-licenses
@@ -269,15 +268,6 @@ if(LLVM_TOOLCHAIN_C_LIBRARY STREQUAL musl-embedded)
         COMPONENT llvm-toolchain-${LLVM_TOOLCHAIN_C_LIBRARY}-configs
     )
 endif()
-
-install(
-    FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/Omax.cfg
-    ${CMAKE_CURRENT_SOURCE_DIR}/OmaxLTO.cfg
-    ${CMAKE_CURRENT_SOURCE_DIR}/Osize.cfg
-    DESTINATION bin
-    COMPONENT llvm-toolchain-config-files
-)
 
 # Include eld
 set(LLVM_EXTERNAL_PROJECTS eld)
