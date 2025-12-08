@@ -741,7 +741,6 @@ else()
     set(package_filename_extension ".tar.xz")
 endif()
 set(package_filepath ${CMAKE_BINARY_DIR}/${PACKAGE_FILE_NAME}${package_filename_extension})
-set(unpack_directory ${CMAKE_CURRENT_BINARY_DIR}/unpack/${PACKAGE_FILE_NAME})
 add_custom_command(
     OUTPUT ${package_filepath}
     COMMAND "${CMAKE_COMMAND}" -E rm -f ${package_filepath}
@@ -754,24 +753,6 @@ add_custom_target(
     package-llvm-toolchain
     DEPENDS ${package_filepath}
 )
-add_custom_target(
-    clear-unpack-directory
-    COMMAND "${CMAKE_COMMAND}" -E rm -rf unpack
-    COMMAND "${CMAKE_COMMAND}" -E make_directory unpack
-)
-
-add_custom_target(
-    unpack-llvm-toolchain
-    COMMAND "${CMAKE_COMMAND}" -E tar x ${package_filepath}
-    DEPENDS ${package_filepath}
-    USES_TERMINAL
-    WORKING_DIRECTORY unpack
-)
-add_dependencies(
-    unpack-llvm-toolchain
-    clear-unpack-directory
-)
-
 
 add_custom_target(check-llvm-toolchain)
 add_dependencies(check-llvm-toolchain check-${LLVM_TOOLCHAIN_C_LIBRARY})
