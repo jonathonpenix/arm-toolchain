@@ -150,7 +150,6 @@ set(LLVM_DISTRIBUTION_COMPONENTS
     clang-resource-headers
     clang
     dsymutil
-    elf2bin
     lld
     ld.eld
     llvm-ar
@@ -293,10 +292,9 @@ set(LLVM_TOOLCHAIN_PROJECT_CODE "E")
 set(LLVM_TOOLCHAIN_VERSION_SUFFIX "pre")
 include(${CMAKE_CURRENT_SOURCE_DIR}/../shared/cmake/generate_toolchain_id.cmake)
 
-# Include elf2bin, eld
-set(LLVM_EXTERNAL_PROJECTS elf2bin eld)
+# Include eld
+set(LLVM_EXTERNAL_PROJECTS eld)
 set(LLVM_EXTERNAL_ELD_SOURCE_DIR "${eld_SOURCE_DIR}")
-set(LLVM_EXTERNAL_ELF2BIN_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../shared/elf2bin)
 
 set(clang_lit_xfails_path "${CMAKE_CURRENT_BINARY_DIR}/clang_lit_xfails.txt")
 set(CLANG_TEST_EXTRA_ARGS "@${clang_lit_xfails_path}")
@@ -306,7 +304,7 @@ add_subdirectory(
     ${llvmproject_src_dir}/llvm llvm
 )
 
-add_dependencies(check-all check-elf2bin check-eld)
+add_dependencies(check-all check-eld)
 
 # Update the xfail/xfail-not list before running the tests.
 add_custom_target(
@@ -668,7 +666,6 @@ install(
     FILES
         ../docs/arm-toolchain-features.md
         ../docs/arm-toolchain-for-embedded-features.md
-        ../docs/elf2bin.md
     DESTINATION docs
     COMPONENT llvm-toolchain-docs
 )
