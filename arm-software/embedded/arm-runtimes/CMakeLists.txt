@@ -252,12 +252,6 @@ else()
     string(REPLACE "-none-" "-unknown-none-" normalized_target_triple ${target_triple})
 endif()
 
-# This prevents a test failure due to insufficient available registers.
-# TODO: Which test, can this be fixed upstream?
-if(VARIANT STREQUAL "armv6m_soft_nofp")
-    set(compiler_rt_test_flags "${compiler_rt_test_flags} -fomit-frame-pointer")
-endif()
-
 if(ENABLE_COMPILER_RT_TESTS)
     # Generate xfails for compiler-rt.
     set(compiler_rt_lit_xfails_path "${CMAKE_CURRENT_BINARY_DIR}/${VARIANT}_compiler-rt_lit_xfails.txt")

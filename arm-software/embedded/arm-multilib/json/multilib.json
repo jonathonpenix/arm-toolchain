@@ -1,12 +1,6 @@
 {
     "libs": [
         {
-            "variant": "aarch64a_unaligned",
-            "json": "aarch64a_unaligned.json",
-            "flags": "--target=aarch64-unknown-none-elf -fno-exceptions -fno-rtti -munaligned-access",
-            "libraries_supported": "picolibc"
-        },
-        {
             "variant": "aarch64a",
             "json": "aarch64a.json",
             "flags": "--target=aarch64-unknown-none-elf -mno-unaligned-access -fno-exceptions -fno-rtti"
