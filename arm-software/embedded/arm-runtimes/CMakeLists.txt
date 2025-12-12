@@ -85,6 +85,13 @@ set(ENABLE_COMPILER_RT_TESTS ${ENABLE_COMPILER_RT_TESTS_def} CACHE BOOL "Enable 
 set(ENABLE_LIBCXX_TESTS ${ENABLE_LIBCXX_TESTS_def} CACHE BOOL "Enable libcxx tests.")
 set(LLVM_BINARY_DIR "" CACHE PATH "Path to LLVM toolchain root to build libraries with")
 
+# Set up a few arbitrary pass-through flags for MUSL. This probably isn't the best idea,
+# but historically, our flag usage is such that it is a bit unclear how to do this in
+# a more princicpled way. This should be revisited and probably clean up, but for now
+# just mirror what we used to do.
+set(EXTRA_MUSL_CONFIG_FLAGS ${EXTRA_MUSL_CONFIG_FLAGS_def} CACHE BOOL "Extra configure options for musl-embedded.")
+set(EXTRA_MUSL_CFLAGS ${EXTRA_MUSL_CFLAGS_def} CACHE BOOL "Extra flags to be used when compiling musl-embedded.")
+
 set(PROJECT_PREFIX "subproj" CACHE STRING "Directory to build subprojects in.")
 set(VARIANT_BUILD_ID "${VARIANT}" CACHE STRING "Name to use to identify build directories." )
 
@@ -589,10 +596,11 @@ if(C_LIBRARY STREQUAL musl-embedded)
         --disable-wrapper
         --quic-arm-baremetal
         --disable-visibility
+        ${EXTRA_MUSL_CONFIG_FLAGS}
         "CROSS_COMPILE=${LLVM_BINARY_DIR}/bin/llvm-"
         "CC=${LLVM_BINARY_DIR}/bin/clang --target=${target_triple} -fuse-ld=eld"
         # jpenix FIXME: maybe mess with the -Os to respect the lib build mode?
-        "CFLAGS=-Os ${lib_compile_flags} -fPIC -fvisibility=hidden -DVISIBILITY_HIDDEN -fno-rounding-math"
+        "CFLAGS=-Os ${lib_compile_flags} -fPIC -fvisibility=hidden -DVISIBILITY_HIDDEN -fno-rounding-math ${EXTRA_MUSL_CFLAGS}"
         "LIBCC=${TEMP_LIB_DIR}/libclang_rt.builtins.a")
 
     ExternalProject_Add(
@@ -605,20 +613,12 @@ if(C_LIBRARY STREQUAL musl-embedded)
         INSTALL_DIR ${TEMP_LIB_DIR}
         DEPENDS compiler_rt-install
         CONFIGURE_COMMAND
-            cd ${musl_SOURCE_DIR}
-            &&
-            make distclean
-            &&
-            ./configure
+            <SOURCE_DIR>/configure
             --prefix=${TEMP_LIB_DIR}
             ${musl_embedded_flags}
         BUILD_COMMAND
-            cd ${musl_SOURCE_DIR}
-            &&
             make ${make_flags}
         INSTALL_COMMAND
-            cd ${musl_SOURCE_DIR}
-            &&
             make install
         USES_TERMINAL_CONFIGURE TRUE
         USES_TERMINAL_BUILD TRUE

@@ -1,0 +1,44 @@
+From 45db7495ebeb5ea44c16d300972d23fd96d0748c Mon Sep 17 00:00:00 2001
+From: Jonathon Penix <jpenix@quicinc.com>
+Date: Thu, 11 Dec 2025 21:00:12 -0800
+Subject: [PATCH] Try to fixup our MUSL to work with out-of-tree builds
+
+Signed-off-by: Jonathon Penix <jpenix@quicinc.com>
+---
+ Makefile  | 4 ++--
+ configure | 3 +++
+ 2 files changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index cc713f0..4f6e53b 100644
+--- a/Makefile
++++ b/Makefile
+@@ -181,10 +181,10 @@ endif
+ # Qualcomm-specific code - start
+ ifeq ($(ARCH),arm)
+ ifeq ($(QUIC_ARM_BAREMETAL),yes)
+-obj/crt/crt1.o : qualcomm-software/crt/arm/crt1_baremetal.s
++obj/crt/crt1.o : $(srcdir)/qualcomm-software/crt/arm/crt1_baremetal.s
+ 	$(AS_CMD)
+ 
+-obj/crt/crt1_linux.o: qualcomm-software/crt/arm/crt1_linux.s
++obj/crt/crt1_linux.o: $(srcdir)/qualcomm-software/crt/arm/crt1_linux.s
+ 	$(AS_CMD)
+ 
+ CRT_OBJS += obj/crt/crt1_linux.o
+diff --git a/configure b/configure
+index 3a4fa9c..45a044c 100755
+--- a/configure
++++ b/configure
+@@ -862,5 +862,8 @@ test "x$pic_default" = xyes && echo 'AOBJS = $(LOBJS)'
+ exec 1>&3 3>&-
+ 
+ test "$srcdir" = "." || ln -sf $srcdir/Makefile .
++# Qualcomm-specific code start
++test "$srcdir" = "." || ln -sf $srcdir/build_variants.mk .
++# Qualcomm-specific code end
+ 
+ printf "done\n"
+-- 
+2.43.0
+

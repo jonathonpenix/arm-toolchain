@@ -2,8 +2,8 @@
     "args": {
         "common": {
             "TARGET_ARCH": "aarch64a",
-            "VARIANT": "aarch64a",
-            "COMPILE_FLAGS": "-march=armv8-a -mno-unaligned-access -fPIC",
+            "VARIANT": "aarch64a_pacret_bkey_bti",
+            "COMPILE_FLAGS": "-march=armv8.5a -mbranch-protection=pac-ret+leaf+b-key+bti -mno-unaligned-access -fPIC",
             "ENABLE_EXCEPTIONS": "OFF",
             "ENABLE_RTTI": "OFF",
             "TEST_EXECUTOR": "qemu",
@@ -23,7 +23,7 @@
             "ENABLE_LIBC_TESTS": "OFF",
             "ENABLE_COMPILER_RT_TESTS": "OFF",
             "ENABLE_LIBCXX_TESTS": "OFF",
-            "EXTRA_MUSL_CFLAGS": "-mstrict-align -D__QUIC_ENABLE_FLT_FOR_PRINT"
+            "EXTRA_MUSL_CFLAGS": "-mstrict-align"
         }
     }
 }
