@@ -5,7 +5,7 @@
             "VARIANT": "aarch64a_soft_nofp",
             "COMPILE_FLAGS": "-march=armv8-a+nofp+nosimd -mabi=aapcs-soft -mno-unaligned-access -fPIC",
             "ENABLE_EXCEPTIONS": "OFF",
-            "ENABLE_RTTI": "OFF",
+            "ENABLE_RTTI": "ON",
             "TEST_EXECUTOR": "qemu",
             "QEMU_MACHINE": "virt",
             "QEMU_CPU": "cortex-a53",

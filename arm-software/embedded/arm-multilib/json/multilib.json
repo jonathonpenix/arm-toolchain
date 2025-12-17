@@ -3,8 +3,7 @@
         {
             "variant": "aarch64a",
             "json": "aarch64a.json",
-            "flags": "--target=aarch64-unknown-none-elf -fno-exceptions",
-            "libraries_supported": "musl-embedded"
+            "flags": "--target=aarch64-unknown-none-elf -fno-exceptions"
         },
         {
             "variant": "aarch64a_soft_nofp",
@@ -31,27 +30,27 @@
             "libraries_supported": "musl-embedded"
         },
         {
-            "variant": "riscv32imac_ilp32",
-            "json": "riscv32imac_ilp32.json",
-            "flags": "--target=riscv32-unknown-unknown-elf -march=rv32imac -mabi=ilp32",
+            "variant": "riscv32imac_ilp32_nopic",
+            "json": "riscv32imac_ilp32_nopic.json",
+            "flags": "--target=riscv32-unknown-unknown-elf -march=rv32imac -mabi=ilp32 -fno-pic -fno-exceptions",
             "libraries_supported": "picolibc"
         },
         {
-            "variant": "riscv32imafc_ilp32f",
-            "json": "riscv32imafc_ilp32f.json",
-            "flags": "--target=riscv32-unknown-unknown-elf -march=rv32imafc -mabi=ilp32f",
+            "variant": "riscv32imac_zba_zbb_ilp32",
+            "json": "riscv32imac_zba_zbb_ilp32.json",
+            "flags": "--target=riscv32-unknown-unknown-elf -march=rv32imac_zba_zbb -mabi=ilp32 -fno-exceptions",
             "libraries_supported": "picolibc"
         },
         {
-            "variant": "riscv64imac_lp64",
-            "json": "riscv64imac_lp64.json",
-            "flags": "--target=riscv64-unknown-unknown-elf -march=rv64imac -mabi=lp64",
+            "variant": "riscv32imac_zba_zbb_ilp32_nopic",
+            "json": "riscv32imac_zba_zbb_ilp32_nopic.json",
+            "flags": "--target=riscv32-unknown-unknown-elf -march=rv32imac_zba_zbb -mabi=ilp32 -fno-pic -fno-exceptions",
             "libraries_supported": "picolibc"
         },
         {
-            "variant": "riscv64imafdc_lp64d",
-            "json": "riscv64imafdc_lp64d.json",
-            "flags": "--target=riscv64-unknown-unknown-elf -march=rv64imafdc -mabi=lp64d",
+            "variant": "riscv64imac_lp64_nopic",
+            "json": "riscv64imac_lp64_nopic.json",
+            "flags": "--target=riscv64-unknown-unknown-elf -march=rv64imac -mabi=lp64 -fno-pic -fno-exceptions",
             "libraries_supported": "picolibc"
         }
     ]

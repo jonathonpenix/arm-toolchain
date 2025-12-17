@@ -5,7 +5,7 @@
             "VARIANT": "aarch64a",
             "COMPILE_FLAGS": "-march=armv8-a -mno-unaligned-access -fPIC",
             "ENABLE_EXCEPTIONS": "OFF",
-            "ENABLE_RTTI": "OFF",
+            "ENABLE_RTTI": "ON",
             "TEST_EXECUTOR": "qemu",
             "QEMU_MACHINE": "virt",
             "QEMU_CPU": "cortex-a53",
@@ -17,6 +17,12 @@
             "RAM_SIZE": "0x1000000",
             "STACK_SIZE": "8K",
             "LIBRARY_BUILD_TYPE": "release"
+        },
+        "picolibc": {
+            "ENABLE_CXX_LIBS": "ON",
+            "ENABLE_LIBC_TESTS": "ON",
+            "ENABLE_COMPILER_RT_TESTS": "ON",
+            "ENABLE_LIBCXX_TESTS": "OFF"
         },
         "musl-embedded": {
             "ENABLE_CXX_LIBS": "ON",

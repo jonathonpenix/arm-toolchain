@@ -1,11 +1,11 @@
 {
     "args": {
         "common": {
-            "TARGET_ARCH": "riscv64",
-            "VARIANT": "riscv64imac_lp64d",
-            "COMPILE_FLAGS": "--target=riscv64-unknown-elf -march=rv64imafdc -mabi=lp64d -mcmodel=medany",
+            "TARGET_ARCH": "riscv32",
+            "VARIANT": "riscv32imac_ilp32_nopic",
+            "COMPILE_FLAGS": "--target=riscv32-unknown-elf -march=rv32imac -mabi=ilp32",
             "ENABLE_EXCEPTIONS": "OFF",
-            "ENABLE_RTTI": "OFF",
+            "ENABLE_RTTI": "ON",
             "TEST_EXECUTOR": "qemu",
             "QEMU_MACHINE": "virt",
             "FLASH_ADDRESS": "0x80000000",
