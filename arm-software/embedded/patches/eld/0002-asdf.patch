@@ -1,0 +1,27 @@
+From 6252ddc956f9ab6b539a21166a8af39ef538ff8b Mon Sep 17 00:00:00 2001
+From: Jonathon Penix <jpenix@quicinc.com>
+Date: Thu, 18 Dec 2025 01:54:38 -0800
+Subject: [PATCH] asdf
+
+---
+ tools/eld/CMakeLists.txt | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/tools/eld/CMakeLists.txt b/tools/eld/CMakeLists.txt
+index 208918a..73241d8 100644
+--- a/tools/eld/CMakeLists.txt
++++ b/tools/eld/CMakeLists.txt
+@@ -5,7 +5,9 @@ option(
+ 
+ set(LLVM_LINK_COMPONENTS ${LLVM_TARGETS_TO_BUILD} irreader Support)
+ 
+-add_llvm_executable(ld.eld eld.cpp)
++list(APPEND LLVM_TOOLCHAIN_TOOLS ld.eld)
++
++add_llvm_tool(ld.eld eld.cpp)
+ add_dependencies(ld.eld update-eld-verinfo)
+ 
+ set(LINKER_WRAPPER_LIB "LW")
+-- 
+2.43.0
+
