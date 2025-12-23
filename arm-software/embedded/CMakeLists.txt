@@ -263,7 +263,7 @@ endif()
 if(LLVM_TOOLCHAIN_C_LIBRARY STREQUAL musl-embedded)
     install(
         FILES
-        ${CMAKE_CURRENT_SOURCE_DIR/${LLVM_TOOLCHAIN_C_LIBRARY}.cfg}
+        ${CMAKE_CURRENT_SOURCE_DIR}/${LLVM_TOOLCHAIN_C_LIBRARY}.cfg
         DESTINATION bin
         COMPONENT llvm-toolchain-${LLVM_TOOLCHAIN_C_LIBRARY}-configs
     )
